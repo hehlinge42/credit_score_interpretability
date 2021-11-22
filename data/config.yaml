@@ -1,5 +1,15 @@
-inputs: "data/input.csv"
+data:
+  inputs: "data/input.csv"
+  categorical_features: 
+    - CreditHistory
+    - EmploymentDuration
+    - Housing
+    - Purpose
+    - Savings
+
+surrogate:
+  model: ""
 
 launcher:
   class: "SurrogateModel"
-  func: "test"
+  func: "preprocess"
