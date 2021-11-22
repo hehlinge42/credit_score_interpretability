@@ -17,7 +17,7 @@ data:
     - NumberOfCredits
   prediction_column: "CreditRisk (y)"
   test_size: 0.3
-  own_model_path: "own_model.joblib"
+  own_model_path: "data/own_model.joblib"
   prediction_data_path: "data/output.csv"
 
 

@@ -15,7 +15,7 @@ class OwnClassifierModel:
         self.test_size = self.config["test_size"]
         self.random_state = self.config["random_state"]
         self.model_path = self.config["own_model_path"]
-        self.output_data_path = self.config["prediction_column"]
+        self.output_data_path = self.config["prediction_data_path"]
 
     def step_2_and_3(self) -> None:
         self.train_model()
@@ -63,7 +63,7 @@ class OwnClassifierModel:
         logger.debug(f"Scores obtained")
         self.X_test["y_hat_own_model"] = y_pred_scores[:,1]
 
-        self.X_test.to_csv(self.output_data_path, sep=';')
+        self.X_test.to_csv(self.output_data_path, sep=';', index=False)
         logger.debug(f"Data exported")
 
     def _preprocess_data(self) -> None:
