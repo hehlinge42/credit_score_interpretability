@@ -1,0 +1,5 @@
+inputs: "data/input.csv"
+
+launcher:
+  class: "SurrogateModel"
+  func: "test"
