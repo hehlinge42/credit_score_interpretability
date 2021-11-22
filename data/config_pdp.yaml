@@ -1,6 +1,5 @@
 data:
-  random_state: 42
-  inputs: "data/input.csv"
+  inputs: data/input.csv
   y_true: CreditRisk (y)
   y_pred: y_hat
   categorical_features: 
@@ -15,11 +14,6 @@ data:
     - InstallmentRate
     - Age
     - NumberOfCredits
-  prediction_column: "CreditRisk (y)"
-  test_size: 0.3
-  own_model_path: "own_model.joblib"
-  prediction_data_path: "data/output.csv"
-
 
 surrogate:
   custom_predictions_path: "data/custom_pred.csv"
@@ -37,6 +31,5 @@ output:
   plot_tree: "data/outputs/surrogate_decision_tree.png"
 
 launcher:
-  class: "OwnClassifierModel"
-  func: "step_2_and_3"
-
+  class: SurrogateModel
+  func: train
