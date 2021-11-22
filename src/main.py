@@ -5,6 +5,7 @@ import yaml
 from logzero import logger
 
 from surrogate import SurrogateModel
+from own_model import OwnClassifierModel
 
 if __name__ == "__main__":
 
