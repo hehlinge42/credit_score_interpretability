@@ -1,4 +1,5 @@
 data:
+  random_state: 42
   inputs: "data/input.csv"
   categorical_features: 
     - CreditHistory
@@ -6,10 +7,14 @@ data:
     - Housing
     - Purpose
     - Savings
+  prediction_column: "CreditRisk (y)"
+  test_size: 0.3
+  own_model_path: "own_model.joblib"
+  prediction_data_path: "data/output.csv"
 
 surrogate:
   model: ""
 
 launcher:
-  class: "SurrogateModel"
-  func: "preprocess"
+  class: "OwnClassifierModel"
+  func: "step_2_and_3"
