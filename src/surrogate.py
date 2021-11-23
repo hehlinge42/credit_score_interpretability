@@ -10,6 +10,7 @@ from sklearn.linear_model import Lasso, LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn import tree
 
+from dtreeviz.trees import dtreeviz
 
 class SurrogateModel:
     def __init__(self, config):
@@ -69,9 +70,14 @@ class SurrogateModel:
                 text_representation = tree.export_text(
                     model, feature_names=list(self.X.columns)
                 )
-                # fig, ax = plt.subplots(figsize=(50, 50), nrows=1, ncols=1)
-                # tree.plot_tree(model, feature_names=list(self.X.columns))
-                # fig.savefig(self.config["output"]["plot_tree"])
+                fig, ax = plt.subplots(figsize=(50, 50), nrows=1, ncols=1)
+                tree.plot_tree(model, feature_names=list(self.X.columns), fontsize=10, filled=True)
+                fig.savefig(self.config["output"]["plot_tree"])
+
+                #tree.plot_tree(model, feature_names=list(self.X.columns), fontsize=10, filled=True).savefig(self.config["output"]["plot_tree"])
+                #viz = dtreeviz(model, self.X_fit, self.y, target_name="CreditRisk (y)", feature_names=list(self.X.columns))
+                #viz.save(self.config["output"]["plot_tree"])
             except:
+                logger.exception("An error occured")
                 pass
         logger.info(f"Model Outputs: {res}")

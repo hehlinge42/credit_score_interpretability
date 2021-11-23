@@ -34,6 +34,7 @@ surrogate:
           
 output:
   plot_tree: "data/outputs/surrogate_decision_tree.png"
+  plot_tree_detailed: "data/outputs/surrogate_decision_tree_detailed.svg"
 
 launcher:
   class: "SurrogateModel"
