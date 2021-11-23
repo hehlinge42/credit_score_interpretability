@@ -1,0 +1,8 @@
+PyYAML
+logzero
+pandas
+numpy
+scikit-learn
+joblib
+matplotlib
+jupyter

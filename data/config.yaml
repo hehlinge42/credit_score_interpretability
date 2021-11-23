@@ -18,11 +18,10 @@ data:
   prediction_column: "CreditRisk (y)"
   test_size: 0.3
   own_model_path: "data/own_model.joblib"
-  prediction_data_path: "data/output.csv"
+  #prediction_data_path: "data/output.csv"
 
 
 surrogate:
-  custom_predictions_path: "data/custom_pred.csv"
   models:
     - DecisionTreeRegressor
     - LinearRegression
@@ -37,6 +36,6 @@ output:
   plot_tree: "data/outputs/surrogate_decision_tree.png"
 
 launcher:
-  class: "OwnClassifierModel"
-  func: "step_2_and_3"
+  class: "SurrogateModel"
+  func: "train"
 

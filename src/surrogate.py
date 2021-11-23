@@ -28,11 +28,18 @@ class SurrogateModel:
                 self.model_kwargs.append(v)
 
         csv_filepath = (
-            self.config["data"]["inputs"]
-            if "custom_predictions_path" not in self.config["surrogate"]
-            else self.config["surrogate"]["custom_predictions_path"]
+            self.config["data"]["prediction_data_path"]
+            if "prediction_data_path" in self.config["data"]
+            else self.config["data"]["inputs"]
         )
-        logger.debug(f"csv_filepath: {csv_filepath}")
+
+        csv_read = (
+            "Evaluating own black box model with surrogate models"
+            if "prediction_data_path" in self.config["data"]
+            else "Evaluating original black box model with surrogate models"
+        )
+        logger.info(f"{csv_read}")
+
         data = pd.read_csv(csv_filepath, sep=";")
         data = data.dropna()
         self.X, self.y = (
@@ -67,4 +74,4 @@ class SurrogateModel:
                 # fig.savefig(self.config["output"]["plot_tree"])
             except:
                 pass
-        logger.debug(f"Model Outputs: \n {res}")
+        logger.info(f"Model Outputs: {res}")

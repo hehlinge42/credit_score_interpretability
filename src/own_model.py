@@ -1,27 +1,54 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+
 from logzero import logger
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 from sklearn.compose import make_column_transformer
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from joblib import dump
 
+from sklearn.inspection import PartialDependenceDisplay
+from alibi.explainers import ALE
+
 
 class OwnClassifierModel:
     def __init__(self, config) -> None:
-        self.config = config["data"]
-        self.data = pd.read_csv(self.config["inputs"], sep=";")
-        self.categorical_features = self.config["categorical_features"]
-        self.prediction_column = self.config["prediction_column"]
-        self.test_size = self.config["test_size"]
-        self.random_state = self.config["random_state"]
-        self.model_path = self.config["own_model_path"]
-        self.output_data_path = self.config["prediction_data_path"]
+        self.config = config
+        self.data = pd.read_csv(self.config["data"]["inputs"], sep=";")
+        self.categorical_features = self.config["data"]["categorical_features"]
+        self.numerical_features = self.config["data"]["numerical_features"]
+        self.prediction_column = self.config["data"]["prediction_column"]
+        self.test_size = self.config["data"]["test_size"]
+        self.random_state = self.config["data"]["random_state"]
+        self.model_path = self.config["data"]["own_model_path"]
+        self.output_data_path = self.config["data"]["prediction_data_path"]
 
     def step_2_and_3(self) -> None:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
+        self.plot_partial_dependence()
+
+    def plot_partial_dependence(self) -> None:
+        plt.rcParams["figure.figsize"] = (10, 10)
+
+        features_idx = [
+            i for i in range(len(self.categorical_features))
+        ]  # pdp of categorical features
+        display = PartialDependenceDisplay.from_estimator(
+            self.model,
+            self.X_test_preprocessed,
+            features_idx,
+            feature_names=self.categorical_features,
+        )
+        display.figure_.suptitle(
+            "Partial dependence of credit worthiness  of borrowers with RandomForest"
+        )
+        plt.savefig(self.config["output"]["plot_pdp"])
+
+    def plot_ale(self) -> None:
+        pass
 
     def train_model(self) -> None:
         logger.debug(f"Initializing {self.__class__.__name__}")
@@ -77,7 +104,9 @@ class OwnClassifierModel:
             (
                 OrdinalEncoder(),
                 self.categorical_features,
-            )  # TODO: check whether we want one-hot encoder instead (risk of fucking with SHAP and other methods)
+            ),
+            (StandardScaler(), self.numerical_features),
+            # TODO: check whether we want one-hot encoder instead (risk of fucking with SHAP and other methods)
         )  # TODO: check whether we need other pre-processing steps (NAs, etc.)
         self.X_train_preprocessed = pipeline_preprocessing.fit_transform(self.X_train)
         self.X_test_preprocessed = pipeline_preprocessing.transform(
