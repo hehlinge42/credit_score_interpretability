@@ -51,9 +51,6 @@ class SurrogateModel:
         self.X = pd.get_dummies(
             self.X, columns=self.config["data"]["categorical_features"]
         )
-        # for numerical_feature in self.config["data"]["numerical_features"]:
-        #     self.X[numerical_feature + "**2"] = self.X[numerical_feature] ** 2
-
         scaler = StandardScaler()
         self.X_fit = scaler.fit_transform(self.X)
 

@@ -13,6 +13,35 @@ from alibi.explainers import ALE
 
 
 class OwnClassifierModel:
+
+    CAT_FEATURES_ORDINAL = {
+        "CreditHistory": ["A30", "A31", "A32", "A33", "A34"],
+        "EmploymentDuration": [
+            "A71",
+            "A72",
+            "A73",
+            "A74",
+            "A75",
+        ],  # No need to challenge
+        "Housing": ["A153", "A151", "A152"],
+        "Purpose": [
+            "A40",
+            "A410",
+            "A45",
+            "A46",
+            "A49",
+            "A48",
+            "A42",
+            "A44",
+            "A43",
+            "A41",
+        ],
+        # "Purpose": ["A40", "A42", "A43", "A44"],
+        "Savings": ["A61", "A62", "A63", "A64", "A65"],  # No need to challenge
+        "Group": ["0", "1"],
+        "Gender": ["0", "1"],
+    }
+
     def __init__(self, config) -> None:
         self.config = config
         self.data = pd.read_csv(self.config["data"]["inputs"], sep=";")
@@ -31,16 +60,22 @@ class OwnClassifierModel:
         self.plot_partial_dependence()
 
     def plot_partial_dependence(self) -> None:
-        plt.rcParams["figure.figsize"] = (10, 10)
+        plt.rcParams["figure.figsize"] = (20, 20)
 
         features_idx = [
-            i for i in range(len(self.categorical_features))
+            i
+            for i in range(
+                len(self.categorical_features) + len(self.numerical_features)
+            )
         ]  # pdp of categorical features
+        feature_names = self.X_test.columns
+        logger.debug(f"features names = {self.X_test.columns}")
+
         display = PartialDependenceDisplay.from_estimator(
             self.model,
             self.X_test_preprocessed,
             features_idx,
-            feature_names=self.categorical_features,
+            feature_names=feature_names,
         )
         display.figure_.suptitle(
             "Partial dependence of credit worthiness  of borrowers with RandomForest"
@@ -74,6 +109,7 @@ class OwnClassifierModel:
     def analyze_model_perfs(
         self,
     ) -> None:  # TODO: decide which outputs we want and what we do with them
+
         logger.debug(f"Initializing {self.__class__.__name__}")
         y_pred = self.model.predict(self.X_test_preprocessed)
         logger.debug(f"Prediction done")
@@ -100,15 +136,23 @@ class OwnClassifierModel:
 
     def _preprocess_data(self) -> None:
         logger.debug(f"Initializing {__class__.__name__}")
+        self.X_train_preprocessed = self.X_train.copy()
+
         pipeline_preprocessing = make_column_transformer(
+            ("passthrough", self.numerical_features),
             (
-                OrdinalEncoder(),
+                OrdinalEncoder(
+                    categories=[
+                        x for x in OwnClassifierModel.CAT_FEATURES_ORDINAL.values()
+                    ]
+                ),
                 self.categorical_features,
             ),
-            (StandardScaler(), self.numerical_features),
             # TODO: check whether we want one-hot encoder instead (risk of fucking with SHAP and other methods)
         )  # TODO: check whether we need other pre-processing steps (NAs, etc.)
-        self.X_train_preprocessed = pipeline_preprocessing.fit_transform(self.X_train)
-        self.X_test_preprocessed = pipeline_preprocessing.transform(
-            self.X_test.drop(columns=[self.prediction_column, "y_hat"])
+        self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
+            self.X_train_preprocessed
         )
+        logger.debug(f"{pipeline_preprocessing.transformers_}")
+        self.X_test = self.X_test.drop(columns=[self.prediction_column, "y_hat"])
+        self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
