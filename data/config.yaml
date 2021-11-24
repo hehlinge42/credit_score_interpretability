@@ -22,15 +22,21 @@ data:
 
 
 surrogate:
+  threshold: 0.82
   models:
     - DecisionTreeRegressor
-    - LinearRegression
+    - Lasso
+    - LogisticRegression
+    - DecisionTreeClassifier
   kwargs:
     - kwargs_1:
-        max_depth: 8
+        max_depth: 6
     - kwargs_2:
+        alpha: 0.0
+    - kwargs_3:
         {}
-
+    - kwargs_4:
+        max_depth: 2
           
 output:
   plot_tree: "data/outputs/surrogate_decision_tree.png"

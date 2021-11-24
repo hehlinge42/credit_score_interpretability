@@ -1,0 +1,10 @@
+|--- Age <= 25.50
+|   |--- CreditDuration <= 27.00
+|   |   |--- class: 1
+|   |--- CreditDuration >  27.00
+|   |   |--- class: 0
+|--- Age >  25.50
+|   |--- CreditAmount <= 12279.00
+|   |   |--- class: 1
+|   |--- CreditAmount >  12279.00
+|   |   |--- class: 0

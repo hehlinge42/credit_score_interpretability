@@ -6,11 +6,13 @@ from logzero import logger
 import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.linear_model import Lasso, LinearRegression
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import Lasso, LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn import tree
+from sklearn.metrics import f1_score
 
 from dtreeviz.trees import dtreeviz
+
 
 class SurrogateModel:
     def __init__(self, config):
@@ -43,38 +45,59 @@ class SurrogateModel:
 
         data = pd.read_csv(csv_filepath, sep=";")
         data = data.dropna()
-        self.X, self.y = (
+        logger.critical(f"\n{data[['y_hat']].describe()}")
+        exit()
+        self.X, self.y, self.y_cat = (
             data.drop([config["data"]["y_true"], config["data"]["y_pred"]], axis=1),
             data["y_hat"],
+            round(data["y_hat"], 0).astype(int),
         )
 
     def preprocess(self):
         self.X = pd.get_dummies(
             self.X, columns=self.config["data"]["categorical_features"]
         )
-        scaler = StandardScaler()
-        self.X_fit = scaler.fit_transform(self.X)
+        self.X_fit = self.X
+        # scaler = StandardScaler()
+        # self.X_fit = scaler.fit_transform(self.X)
+
+    def evaluate_Lasso(self, model):
+        logger.info(f"Getting evaluation for Lasso model")
+        for i in range(len(self.X.columns)):
+            logger.debug(f"Coef of feature {self.X.columns[i]}: {model.coef_[i]}")
+
+    def evaluate_LogisticRegression(self, model):
+        logger.info(f"Getting evaluation for LogisticRegression model")
+        for i in range(len(self.X.columns)):
+            logger.debug(f"Coef of feature {self.X.columns[i]}: {model.coef_[0][i]}")
+
+    def evaluate_DecisionTreeRegressor(self, model):
+        logger.info(f"Getting evaluation for DecisionTree model")
+        text_representation = tree.export_text(
+            model, feature_names=list(self.X.columns)
+        )
+        with open("data/tree.txt", "w") as text_file:
+            text_file.write(text_representation)
+        logger.debug(f"\n{text_representation}")
+
+    def evaluate_DecisionTreeClassifier(self, model):
+        self.evaluate_DecisionTreeRegressor(model)
+
+    def get_y_col(self, model_type):
+        if model_type in ["DecisionTreeRegressor", "Lasso"]:
+            return self.y
+        return self.y_cat
 
     def train(self):
         res = {}
         self.preprocess()
         for i, model_type in enumerate(self.model_types):
             model = model_type(**self.model_kwargs[i])
-            model.fit(self.X_fit, self.y)
-            score = model.score(self.X_fit, self.y)
+            y = self.get_y_col(self.model_types_str[i])
+            model.fit(self.X_fit, y)
+            score = model.score(self.X_fit, y)
             res[self.model_types_str[i]] = score
-            try:
-                text_representation = tree.export_text(
-                    model, feature_names=list(self.X.columns)
-                )
-                fig, ax = plt.subplots(figsize=(50, 50), nrows=1, ncols=1)
-                tree.plot_tree(model, feature_names=list(self.X.columns), fontsize=10, filled=True)
-                fig.savefig(self.config["output"]["plot_tree"])
+            eval_func = getattr(self, "evaluate_" + self.model_types_str[i])
+            eval_func(model)
 
-                #tree.plot_tree(model, feature_names=list(self.X.columns), fontsize=10, filled=True).savefig(self.config["output"]["plot_tree"])
-                #viz = dtreeviz(model, self.X_fit, self.y, target_name="CreditRisk (y)", feature_names=list(self.X.columns))
-                #viz.save(self.config["output"]["plot_tree"])
-            except:
-                logger.exception("An error occured")
-                pass
         logger.info(f"Model Outputs: {res}")
