@@ -1,9 +1,9 @@
 |--- CreditHistory_A34 <= 0.50
 |   |--- CreditDuration <= 8.50
 |   |   |--- Purpose_A46 <= 0.50
-|   |   |   |--- CreditHistory_A30 <= 0.50
+|   |   |   |--- Savings_A64 <= 0.50
 |   |   |   |   |--- class: 1
-|   |   |   |--- CreditHistory_A30 >  0.50
+|   |   |   |--- Savings_A64 >  0.50
 |   |   |   |   |--- class: 0
 |   |   |--- Purpose_A46 >  0.50
 |   |   |   |--- class: 0
@@ -34,7 +34,7 @@
 |   |   |--- Purpose_A41 <= 0.50
 |   |   |   |--- class: 0
 |   |   |--- Purpose_A41 >  0.50
-|   |   |   |--- NumberOfCredits <= 1.50
-|   |   |   |   |--- class: 1
-|   |   |   |--- NumberOfCredits >  1.50
+|   |   |   |--- Savings_A65 <= 0.50
 |   |   |   |   |--- class: 0
+|   |   |   |--- Savings_A65 >  0.50
+|   |   |   |   |--- class: 1

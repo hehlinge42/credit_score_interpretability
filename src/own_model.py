@@ -82,6 +82,33 @@ class OwnClassifierModel:
         )
         plt.savefig(self.config["output"]["plot_pdp"])
 
+    def plot_ice(self) -> None:
+        plt.rcParams["figure.figsize"] = (20, 20)
+
+        features_idx = [
+            i
+            for i in range(
+                len(self.categorical_features) + len(self.numerical_features)
+            )
+        ]  # ice of categorical features
+        feature_names = self.X_test.columns
+        logger.debug(f"features names = {self.X_test.columns}")
+
+        display = PartialDependenceDisplay.from_estimator(
+            self.model,
+            self.X_test_preprocessed,
+            features_idx,
+            feature_names=feature_names,
+            kind='both',
+            ice_lines_kw={"color": "tab:blue", "alpha": 0.2, "linewidth": 0.5},
+            pd_line_kw={"color": "tab:orange", "linestyle": "--"}
+        )
+        display.figure_.suptitle(
+            "test"
+        )
+        plt.savefig(self.config["output"]["plot_ice"])
+
+
     def plot_ale(self) -> None:
         pass
 
