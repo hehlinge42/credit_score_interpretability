@@ -35,8 +35,6 @@ surrogate:
 
           
 output:
-  plot_tree: "data/outputs/surrogate_decision_tree.png"
-  plot_pdp: "data/outputs/pdp_plots.png"
   plot_ice: "data/outputs/ice_plots.png"
 
 launcher:
