@@ -36,7 +36,7 @@ surrogate:
     - kwargs_3:
         {}
     - kwargs_4:
-        max_depth: 2
+        max_depth: 4
           
 output:
   plot_tree: "data/outputs/surrogate_decision_tree.png"
