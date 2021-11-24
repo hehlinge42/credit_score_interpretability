@@ -45,12 +45,10 @@ class SurrogateModel:
 
         data = pd.read_csv(csv_filepath, sep=";")
         data = data.dropna()
-        logger.critical(f"\n{data[['y_hat']].describe()}")
-        exit()
         self.X, self.y, self.y_cat = (
             data.drop([config["data"]["y_true"], config["data"]["y_pred"]], axis=1),
             data["y_hat"],
-            round(data["y_hat"], 0).astype(int),
+            (data["y_hat"] > config["surrogate"]["threshold"]).astype(int),
         )
 
     def preprocess(self):
