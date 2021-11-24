@@ -34,7 +34,13 @@
 |   |   |--- Purpose_A41 <= 0.50
 |   |   |   |--- class: 0
 |   |   |--- Purpose_A41 >  0.50
+<<<<<<< HEAD
 |   |   |   |--- CreditAmount <= 10838.50
 |   |   |   |   |--- class: 0
 |   |   |   |--- CreditAmount >  10838.50
+=======
+|   |   |   |--- Savings_A65 <= 0.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- Savings_A65 >  0.50
+>>>>>>> 96f689378057a36157a69c4249e4ad0bcf59b4f2
 |   |   |   |   |--- class: 1
