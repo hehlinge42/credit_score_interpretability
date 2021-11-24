@@ -11,8 +11,6 @@ from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn import tree
 from sklearn.metrics import f1_score
 
-from dtreeviz.trees import dtreeviz
-
 
 class SurrogateModel:
     def __init__(self, config):
