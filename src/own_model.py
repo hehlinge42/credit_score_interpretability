@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from logzero import logger
+from scipy.sparse.construct import random
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 from sklearn.compose import make_column_transformer
@@ -9,7 +10,8 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from joblib import dump
 
 from sklearn.inspection import PartialDependenceDisplay
-from alibi.explainers import ALE
+
+from PyALE import ale
 
 
 class OwnClassifierModel:
@@ -53,11 +55,45 @@ class OwnClassifierModel:
         self.model_path = self.config["data"]["own_model_path"]
         self.output_data_path = self.config["data"]["prediction_data_path"]
 
-    def step_2_and_3(self) -> None:
+    def step_2_3_5_7(self) -> None:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
-        self.plot_partial_dependence()
+        # self.plot_partial_dependence()
+        self.plot_ale()
+
+    def plot_ale(self) -> None:
+        fig, ax = plt.subplots(figsize=(20, 20), nrows=3, ncols=5)
+        fig.subplots_adjust(hspace=0.5, wspace=0.001)
+        count = len(self.numerical_features) - 1
+        X_df = pd.DataFrame(
+            self.X_test_preprocessed,
+            columns=self.numerical_features + self.categorical_features,
+        )
+        logger.debug(f"\n{X_df.shape}")
+        for i, feature in enumerate(self.numerical_features):
+            result = ale(
+                X=X_df,
+                model=self.model,
+                feature=[feature],
+                feature_type="auto",
+                grid_size=50,
+                include_CI=True,
+                C=0.95,
+            )
+            plt.savefig(self.config["output"]["plot_ale"] + "_" + str(feature) + ".png")
+
+        for i, feature in enumerate(self.categorical_features):
+            result = ale(
+                X=X_df,
+                model=self.model,
+                feature=[feature],
+                feature_type="auto",
+                grid_size=50,
+                include_CI=True,
+                C=0.95,
+            )
+            plt.savefig(self.config["output"]["plot_ale"] + "_" + str(feature) + ".png")
 
     def plot_partial_dependence(self) -> None:
         plt.rcParams["figure.figsize"] = (20, 20)
@@ -76,6 +112,10 @@ class OwnClassifierModel:
             self.X_test_preprocessed,
             features_idx,
             feature_names=feature_names,
+            kind="both",
+            subsample=20,
+            ice_lines_kw={"color": "tab:blue", "alpha": 0.2, "linewidth": 0.5},
+            pd_line_kw={"color": "tab:orange", "linestyle": "--"},
         )
         display.figure_.suptitle(
             "Partial dependence of credit worthiness  of borrowers with RandomForest"
@@ -99,18 +139,12 @@ class OwnClassifierModel:
             self.X_test_preprocessed,
             features_idx,
             feature_names=feature_names,
-            kind='both',
+            kind="both",
             ice_lines_kw={"color": "tab:blue", "alpha": 0.2, "linewidth": 0.5},
-            pd_line_kw={"color": "tab:orange", "linestyle": "--"}
+            pd_line_kw={"color": "tab:orange", "linestyle": "--"},
         )
-        display.figure_.suptitle(
-            "test"
-        )
+        display.figure_.suptitle("test")
         plt.savefig(self.config["output"]["plot_ice"])
-
-
-    def plot_ale(self) -> None:
-        pass
 
     def train_model(self) -> None:
         logger.debug(f"Initializing {self.__class__.__name__}")
@@ -139,9 +173,6 @@ class OwnClassifierModel:
 
         logger.debug(f"Initializing {self.__class__.__name__}")
         y_pred = self.model.predict(self.X_test_preprocessed)
-        logger.debug(f"Prediction done")
-        print(self.y_test)
-        print(y_pred)
         acc_score = accuracy_score(
             self.y_test, y_pred
         )  # TODO: need to save it somewhere ?

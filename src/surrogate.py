@@ -18,17 +18,20 @@ class SurrogateModel:
     def __init__(self, config):
         self.config = config
 
-        self.model_types_str = config["surrogate"]["models"]
-        self.model_kwargs_dict = config["surrogate"]["kwargs"]
+        self.models = config["surrogate"]["models"]
+        logger.debug(self.models)
+        self.model_types_str = []
         self.model_types = []
-
-        for model_type in self.model_types_str:
-            self.model_types.append(getattr(sys.modules[__name__], model_type))
-
         self.model_kwargs = []
-        for kwargs in self.model_kwargs_dict:
-            for k, v in kwargs.items():
-                self.model_kwargs.append(v)
+        self.categorical_features = self.config["data"]["categorical_features"]
+        self.numerical_features = self.config["data"]["numerical_features"]
+        for model_str, kwargs in self.models.items():
+            self.model_types_str.append(model_str)
+            self.model_types.append(getattr(sys.modules[__name__], model_str))
+            if isinstance(kwargs, dict):
+                self.model_kwargs.append(kwargs)
+            else:
+                self.model_kwargs.append({})
 
         csv_filepath = (
             self.config["data"]["prediction_data_path"]
@@ -45,6 +48,9 @@ class SurrogateModel:
 
         data = pd.read_csv(csv_filepath, sep=";")
         data = data.dropna()
+        logger.debug(config["data"]["y_true"])
+        logger.debug(config["data"]["y_pred"])
+        logger.debug(f"\n{data.columns}")
         self.X, self.y, self.y_cat = (
             data.drop([config["data"]["y_true"], config["data"]["y_pred"]], axis=1),
             data["y_hat"],
@@ -71,11 +77,20 @@ class SurrogateModel:
 
     def evaluate_DecisionTreeRegressor(self, model):
         logger.info(f"Getting evaluation for DecisionTree model")
+
+        plt.rcParams["figure.figsize"] = (20, 20)
+        plt.rcParams["figure.dpi"] = 75
+        display = tree.plot_tree(
+            model, filled=True, fontsize=8.5, feature_names=list(self.X.columns),
+        )
+        plt.savefig("data/tree_visualisation.png")
         text_representation = tree.export_text(
             model, feature_names=list(self.X.columns)
         )
+
         with open("data/tree.txt", "w") as text_file:
             text_file.write(text_representation)
+
         logger.debug(f"\n{text_representation}")
 
     def evaluate_DecisionTreeClassifier(self, model):

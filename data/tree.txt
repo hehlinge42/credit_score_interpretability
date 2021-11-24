@@ -34,7 +34,7 @@
 |   |   |--- Purpose_A41 <= 0.50
 |   |   |   |--- class: 0
 |   |   |--- Purpose_A41 >  0.50
-|   |   |   |--- Savings_A65 <= 0.50
-|   |   |   |   |--- class: 0
-|   |   |   |--- Savings_A65 >  0.50
+|   |   |   |--- Savings_A61 <= 0.50
 |   |   |   |   |--- class: 1
+|   |   |   |--- Savings_A61 >  0.50
+|   |   |   |   |--- class: 0

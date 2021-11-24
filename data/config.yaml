@@ -9,6 +9,8 @@ data:
     - Housing
     - Purpose
     - Savings
+    - Group
+    - Gender
   numerical_features:
     - CreditDuration
     - CreditAmount
@@ -18,33 +20,25 @@ data:
   prediction_column: "CreditRisk (y)"
   test_size: 0.3
   own_model_path: "data/own_model.joblib"
-  #prediction_data_path: "data/output.csv"
-
+  prediction_data_path: "data/output.csv"
 
 surrogate:
   threshold: 0.82
   models:
-    - DecisionTreeRegressor
-    - Lasso
-    - LogisticRegression
-    - DecisionTreeClassifier
-  kwargs:
-    - kwargs_1:
-        max_depth: 6
-    - kwargs_2:
-        alpha: 0.0
-    - kwargs_3:
-        {}
-    - kwargs_4:
-        max_depth: 4
+    DecisionTreeRegressor:
+      max_depth: 6
+    Lasso:
+      alpha: 0.0
+    LogisticRegression: None
+    DecisionTreeClassifier:
+      max_depth: 4
           
 output:
   plot_tree: "data/outputs/surrogate_decision_tree.png"
-  plot_ice: "data/outputs/plot_ice.png"
-  #plot_tree_detailed: "data/outputs/surrogate_decision_tree_detailed.svg"
-  
+  plot_pdp: "data/outputs/pdp_plots.png"
+  plot_ale: "data/outputs/ale_plots"
 
 launcher:
-  class: "SurrogateModel"
-  func: "train"
+  class: "OwnClassifierModel" # SurrogateModel
+  func: "step_2_3_5_7" # train
 
