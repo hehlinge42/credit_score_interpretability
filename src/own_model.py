@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import shap
 
 from logzero import logger
 from sklearn.ensemble import RandomForestClassifier
@@ -9,45 +10,50 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from joblib import dump
 
 from sklearn.inspection import PartialDependenceDisplay
-from alibi.explainers import ALE
+
+shap.initjs()
 
 
 class OwnClassifierModel:
 
-    CAT_FEATURES_ORDINAL = {
-        "CreditHistory": ["A30", "A31", "A32", "A33", "A34"],
-        "EmploymentDuration": [
-            "A71",
-            "A72",
-            "A73",
-            "A74",
-            "A75",
-        ],  # No need to challenge
-        "Housing": ["A153", "A151", "A152"],
-        "Purpose": [
-            "A40",
-            "A410",
-            "A45",
-            "A46",
-            "A49",
-            "A48",
-            "A42",
-            "A44",
-            "A43",
-            "A41",
-        ],
-        # "Purpose": ["A40", "A42", "A43", "A44"],
-        "Savings": ["A61", "A62", "A63", "A64", "A65"],  # No need to challenge
-        "Group": ["0", "1"],
-        "Gender": ["0", "1"],
-    }
+    # CAT_FEATURES_ORDINAL = {
+    #     "CreditHistory": ["A30", "A31", "A32", "A33", "A34"],
+    #     "EmploymentDuration": [
+    #         "A71",
+    #         "A72",
+    #         "A73",
+    #         "A74",
+    #         "A75",
+    #     ],  # No need to challenge
+    #     "Housing": ["A153", "A151", "A152"],
+    #     "Purpose": [
+    #         "A40",
+    #         "A410",
+    #         "A45",
+    #         "A46",
+    #         "A49",
+    #         "A48",
+    #         "A42",
+    #         "A44",
+    #         "A43",
+    #         "A41",
+    #     ],
+    #     # "Purpose": ["A40", "A42", "A43", "A44"],
+    #     "Savings": ["A61", "A62", "A63", "A64", "A65"],  # No need to challenge
+    #     "Group": ["0", "1"],
+    #     "Gender": ["0", "1"],
+    # }
 
     def __init__(self, config) -> None:
         self.config = config
+
+        # print(self.CAT_FEATURES_ORDINAL)
+        self.cat_features_order = self.config["data"]["ordered_ordinal_features"]
+
         self.data = pd.read_csv(self.config["data"]["inputs"], sep=";")
         self.categorical_features = self.config["data"]["categorical_features"]
         self.numerical_features = self.config["data"]["numerical_features"]
-        self.prediction_column = self.config["data"]["prediction_column"]
+        self.prediction_column = self.config["data"]["y_true"]
         self.test_size = self.config["data"]["test_size"]
         self.random_state = self.config["data"]["random_state"]
         self.model_path = self.config["data"]["own_model_path"]
@@ -142,9 +148,7 @@ class OwnClassifierModel:
             ("passthrough", self.numerical_features),
             (
                 OrdinalEncoder(
-                    categories=[
-                        x for x in OwnClassifierModel.CAT_FEATURES_ORDINAL.values()
-                    ]
+                    categories=[x for x in self.cat_features_order.values()]
                 ),
                 self.categorical_features,
             ),
@@ -156,3 +160,11 @@ class OwnClassifierModel:
         logger.debug(f"{pipeline_preprocessing.transformers_}")
         self.X_test = self.X_test.drop(columns=[self.prediction_column, "y_hat"])
         self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
+
+    def shap_analysis(self) -> None:
+        explainer = shap.Explainer(self.model)
+        shap_values = explainer(self.X_train_preprocessed)
+        shap.plots.beeswarm(shap_values)
+        for customer_id in self.customers:
+            shap.plots.bar(shap_values[customer_id])
+
