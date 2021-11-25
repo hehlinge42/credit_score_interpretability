@@ -46,10 +46,10 @@ class OwnClassifierModel:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
-        # self.plot_partial_dependence()
-        # self.plot_ale()
-        # self.plot_shap_analysis()
-        # self._statistical_parity()
+        self.plot_partial_dependence()
+        self.plot_ale()
+        self.plot_shap_analysis()
+        self._statistical_parity()
 
     def train_model(self) -> None:
         logger.debug(f"Initialisation of training")
@@ -58,7 +58,7 @@ class OwnClassifierModel:
             drop=True
         )
         y_train = self.X_train[self.prediction_column]
-        print(y_train)
+
         self.X_train.drop(
             columns=[self.prediction_column, self.existing_pred], inplace=True
         )
@@ -72,6 +72,7 @@ class OwnClassifierModel:
         self.model = XGBClassifier(
             random_state=self.random_state, use_label_encoder=False
         )
+
         self.model.fit(self.X_train_preprocessed, y_train)
         logger.debug(f"Model trained")
 
@@ -109,21 +110,33 @@ class OwnClassifierModel:
     def _preprocess_data(self) -> None:
         logger.debug(f"Initialisation of pre_processing")
         self.X_train_preprocessed = self.X_train.copy()
+
         categories = [[v for v in x.values()][0] for x in self.cat_features_order]
-        logger.debug(categories)
         pipeline_preprocessing = make_column_transformer(
             ("passthrough", self.numerical_features),
             (OrdinalEncoder(categories=categories), self.categorical_features),
-            ("drop", self.forbidden_columns),
         )
+
+        self.X_train_preprocessed = self.X_train_preprocessed.drop(
+            columns=self.forbidden_columns, axis=1
+        )
+
+        self.X_test_preprocessed = self.X_test.drop(
+            columns=self.prediction_column, axis=1
+        )
+        self.X_test_preprocessed = self.X_test_preprocessed.drop(
+            columns=self.existing_pred, axis=1
+        )
+        self.X_test_preprocessed = self.X_test_preprocessed.drop(
+            columns=self.forbidden_columns, axis=1
+        )
+
         self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
             self.X_train_preprocessed
         )
-        logger.debug(f"{pipeline_preprocessing.transformers_}")
-        self.X_test = self.X_test.drop(
-            columns=[self.prediction_column, self.existing_pred]
+        self.X_test_preprocessed = pipeline_preprocessing.transform(
+            self.X_test_preprocessed
         )
-        self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
 
     def plot_ale(self) -> None:
         fig, ax = plt.subplots(figsize=(20, 20), nrows=3, ncols=5)
@@ -133,7 +146,7 @@ class OwnClassifierModel:
             self.X_test_preprocessed,
             columns=self.numerical_features + self.categorical_features,
         )
-        logger.debug(f"\n{X_df.shape}")
+
         for i, feature in enumerate(self.numerical_features):
             result = ale(
                 X=X_df,
@@ -197,7 +210,9 @@ class OwnClassifierModel:
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
+            feature_names=self.X_train.drop(
+                columns=self.forbidden_columns, axis=1
+            ).columns,
             show=False,
         )
         display = plt.gcf()
@@ -209,7 +224,9 @@ class OwnClassifierModel:
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
+            feature_names=self.X_train.drop(
+                columns=self.forbidden_columns, axis=1
+            ).columns,
             show=False,
             plot_type="bar",
         )
