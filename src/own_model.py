@@ -1,5 +1,6 @@
 from os import X_OK
 import pandas as pd
+import numpy as np
 
 import matplotlib.pyplot as plt
 import shap
@@ -53,7 +54,7 @@ class OwnClassifierModel:
         self.plot_fairness_partial_dependence()
         # self.plot_partial_dependence()
         # self.plot_ale()
-        self.plot_shap_analysis()
+        # self.plot_shap_analysis()
 
     def train_model(self) -> None:
         logger.debug(f"Initialisation of training")
@@ -195,20 +196,39 @@ class OwnClassifierModel:
         # logger.info("Printing PDP raw values")
         # logger.info(self.raw_values)
         # logger.info(f"Shape : {self.raw_values.shape}")
-        mask_male = self.X_test[self.X_test['Gender']==0]
+        print(self.X_test.columns)
+        # mask_male = self.X_test.loc[self.X_test['Gender']==0, 'Gender']
+        mask_male = self.X_test['Gender']==0
         # Option 2 
         def plot_feature(feature_name):
             pval_ls = []
-            distinct_values = self.X_test[feature_name].unique()
+            column_idx = self.X_test.columns.get_loc(feature_name)
+            distinct_values = np.unique(self.X_test_preprocessed[:, column_idx])
+            logger.info(f"The distinct values are {distinct_values}")
             for c_j in distinct_values:
-                X_modified = self.X_test.copy()
-                print(X_modified.columns)
-                X_modified[feature_name] = c_j
+                
+                # X_modified = self.X_test.copy()
+                # X_modified = self._preprocess_data(X_modified)
+                X_modified = self.X_test_preprocessed.copy()
+                X_modified[:, column_idx] = c_j
+                print(X_modified)
                 y_pred = self.model.predict(X_modified)
-                y_pred_male = y_pred[mask_male]
-                y_pred_female = y_pred[~mask_male]
-                _, p_val = chisquare(f_obs=y_pred_male, f_exp=y_pred_female)
-                pval_ls.append(p_val)
+                print(mask_male)
+                print(~mask_male)
+                # y_pred_male = y_pred[mask_male]
+                # y_pred_female = y_pred[~mask_male]
+
+                # A faire avec les index
+                # df_contingency = self.X_test['Gender']
+                # df_contingency['Prediction'] = y_pred
+                df_contingency = pd.crosstab(self.X_test['Gender'], y_pred)
+                print(df_contingency)
+                # count_male_loan, count_male_no_loan = df_contingency.sum(), len(mask_male) - mask_male.sum()
+                # count_female_loan, count_female_no_loan = 1, 2
+                # contingency_table = np.asarray([[count_male_no_loan, count_male_loan], []])
+
+                # _, p_val = chisquare(f_obs=y_pred_male, f_exp=y_pred_female)
+                # pval_ls.append(p_val)
             print(pval_ls)
             
         plot_feature("Housing")
