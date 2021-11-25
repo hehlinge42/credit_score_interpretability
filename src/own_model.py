@@ -46,8 +46,8 @@ class OwnClassifierModel:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
-        # self.plot_partial_dependence()
-        # self.plot_ale()
+        self.plot_partial_dependence()
+        self.plot_ale()
         self.plot_shap_analysis()
         self._statistical_parity()
 
@@ -85,7 +85,7 @@ class OwnClassifierModel:
         class_report = classification_report(self.y_test, y_pred)
 
         full_model_perfs = (
-            f"Global accuracy: {acc_score}"
+            f"Global accuracy: {acc_score:0.2f} "
             f"with the following classification report: \n{class_report}"
         )
         logger.debug(f"Classification report obtained: {full_model_perfs}")
@@ -212,10 +212,13 @@ class OwnClassifierModel:
         logger.debug(f"Initialisation of shap analysis")
         explainer = shap.Explainer(self.model)
         shap_values = explainer.shap_values(self.X_train_preprocessed)
+
+        plt.clf()
+
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.columns,
+            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
             show=False,
         )
         display = plt.gcf()
@@ -227,7 +230,7 @@ class OwnClassifierModel:
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.columns,
+            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
             show=False,
             plot_type="bar",
         )
@@ -238,7 +241,10 @@ class OwnClassifierModel:
         plt.clf()
 
         X_train_preprocessed_for_shap = pd.DataFrame(self.X_train_preprocessed)
-        X_train_preprocessed_for_shap.columns = self.X_train.columns
+
+        X_train_preprocessed_for_shap.columns = self.X_train.drop(
+            columns=self.forbidden_columns
+        ).columns
 
         shap_values = explainer(X_train_preprocessed_for_shap)
 
@@ -254,19 +260,22 @@ class OwnClassifierModel:
 
     def _statistical_parity(self) -> None:
         logger.debug(f"Statistical parity initialised")
-        self.X_test["accepted"] = np.where(self.X_test["y_hat_own_model"] >= 0.5, 1, 0)
 
-        df_X_test_preprocessed = pd.DataFrame(self.X_test_preprocessed)
-        df_X_test_preprocessed.columns = self.X_train.columns
+        print(self.categorical_features)
+        print(self.forbidden_columns)
 
-        for feature in self.categorical_features:
+        for feature in self.categorical_features + self.forbidden_columns:
             series_accepted = (
-                df_X_test_preprocessed.loc[self.X_test["accepted"] == 1, feature]
+                self.X_test.loc[
+                    self.X_test[self.config["output"]["y_pred_cat"]] == 1, feature
+                ]
                 .value_counts(normalize=True)
                 .sort_index()
             )
             series_refused = (
-                df_X_test_preprocessed.loc[self.X_test["accepted"] == 0, feature]
+                self.X_test.loc[
+                    self.X_test[self.config["output"]["y_pred_cat"]] == 0, feature
+                ]
                 .value_counts(normalize=True)
                 .sort_index()
             )
@@ -280,16 +289,16 @@ class OwnClassifierModel:
                         f"the model is not statistically unfair on {feature}"
                     )
 
-                series_plot = self.X_test.groupby("accepted")[feature].value_counts(
-                    normalize=True
-                )
+                series_plot = self.X_test.groupby(self.config["output"]["y_pred_cat"])[
+                    feature
+                ].value_counts(normalize=True)
                 series_plot.mul(100)
                 series_plot = series_plot.rename("percent").reset_index()
                 fig = sns.catplot(
                     data=pd.DataFrame(series_plot),
                     x=feature,
                     y="percent",
-                    hue="accepted",
+                    hue=self.config["output"]["y_pred_cat"],
                     kind="bar",
                 )
 
@@ -309,8 +318,6 @@ class OwnClassifierModel:
                 )
 
         logger.debug(f"Statistical parity finalised")
-
-        # self.X_test["y_hat_own_model"]
 
 
 #     Step 9: Assess the fairness of your own model. Use a Pearson statistic for the following three fairness

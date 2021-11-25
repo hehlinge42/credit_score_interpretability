@@ -90,5 +90,5 @@ output:
   plot_statistical_parity: "data/outputs/statistical_parity"
 
 launcher:
-  class: SurrogateModel #OwnClassifierModel
-  func: train #step_2_3_5_7 
+  class: OwnClassifierModel #OwnClassifierModel
+  func: step_2_3_5_7 #step_2_3_5_7
