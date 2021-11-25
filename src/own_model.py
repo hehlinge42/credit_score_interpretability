@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 from sklearn.compose import make_column_transformer
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.inspection import partial_dependence
 from joblib import dump
 
 from sklearn.inspection import PartialDependenceDisplay
@@ -68,8 +69,9 @@ class OwnClassifierModel:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
+        self.plot_fairness_partial_dependence()
         # self.plot_partial_dependence()
-        self.plot_ale()
+        # self.plot_ale()
 
     def plot_ale(self) -> None:
         fig, ax = plt.subplots(figsize=(20, 20), nrows=3, ncols=5)
@@ -130,6 +132,10 @@ class OwnClassifierModel:
             "Partial dependence of credit worthiness  of borrowers with RandomForest"
         )
         plt.savefig(self.config["output"]["plot_pdp"])
+
+    def plot_fairness_partial_dependence(self) -> None:
+        print(self.pdp.raw_values)
+
 
     def plot_ice(self) -> None:
         plt.rcParams["figure.figsize"] = (20, 20)
