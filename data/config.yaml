@@ -22,7 +22,7 @@ data:
   chosen_random_customers:
     - 56
     - 786
-    - 1628
+    - 1284
   ordered_ordinal_features:
     - CreditHistory:
         - A30
@@ -91,6 +91,7 @@ output:
     - "data/outputs/shap_customer_1.png"
     - "data/outputs/shap_customer_2.png"
     - "data/outputs/shap_customer_3.png"
+  plot_statistical_parity: "data/outputs/statistical_parity"
 
 launcher:
   class: OwnClassifierModel #OwnClassifierModel
