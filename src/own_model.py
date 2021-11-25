@@ -11,7 +11,7 @@ from scipy.sparse.construct import random
 from xgboost import XGBClassifier
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.compose import make_column_transformer
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from joblib import dump
 
 from sklearn.inspection import PartialDependenceDisplay
@@ -46,10 +46,10 @@ class OwnClassifierModel:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
-        self.plot_partial_dependence()
-        self.plot_ale()
-        self.plot_shap_analysis()
-        self._statistical_parity()
+        # self.plot_partial_dependence()
+        # self.plot_ale()
+        # self.plot_shap_analysis()
+        # self._statistical_parity()
 
     def train_model(self) -> None:
         logger.debug(f"Initialisation of training")
@@ -102,6 +102,8 @@ class OwnClassifierModel:
         self.X_test[self.config["output"]["y_pred_cat"]] = y_pred_cat
 
         self.X_test.to_csv(self.output_data_path, sep=";", index=False)
+        tn, fp, fn, tp = confusion_matrix(self.y_test, y_pred_cat).ravel()
+        logger.debug(f"tn: {tn}, fp: {fp}, fn: {fn}, tp: {tp}")
         logger.debug(f"Data exported")
 
     def _preprocess_data(self) -> None:
