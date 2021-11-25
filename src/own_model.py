@@ -90,7 +90,7 @@ class OwnClassifierModel:
 
         full_model_perfs = (
             f"Global accuracy: {acc_score}"
-            f"with the following classification report: {class_report}"
+            f"with the following classification report: \n{class_report}"
         )
         logger.debug(f"Classification report obtained: {full_model_perfs}")
         perfs_txt = open(self.config["output"]["txt_perfs"], "w")
@@ -100,8 +100,10 @@ class OwnClassifierModel:
     def make_prediction(self) -> None:
         logger.debug(f"Initialisation of predictions")
         y_pred_scores = self.model.predict_proba(self.X_test_preprocessed)
+        y_pred_cat = self.model.predict(self.X_test_preprocessed)
         logger.debug(f"Scores obtained")
-        self.X_test["y_hat_own_model"] = y_pred_scores[:, 1]
+        self.X_test[self.config["output"]["y_pred_proba"]] = y_pred_scores[:, 1]
+        self.X_test[self.config["output"]["y_pred_cat"]] = y_pred_cat
 
         self.X_test.to_csv(self.output_data_path, sep=";", index=False)
         logger.debug(f"Data exported")

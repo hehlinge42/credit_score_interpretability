@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import Lasso, LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn import tree
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score
 
 
 class SurrogateModel:
@@ -51,10 +51,10 @@ class SurrogateModel:
             data = pd.read_csv(csv_filepath, sep=";")
             data = data.dropna()
             self.X, self.y, self.y_cat = (
-                data.drop([config["output"]["y_pred"]], axis=1),
-                data[config["output"]["y_pred"]],
+                data.drop([config["data"]["y_pred"], config["data"]["y_true"]], axis=1),
+                data[config["data"]["y_pred"]],
                 (
-                    data[config["output"]["y_pred"]] > config["surrogate"]["threshold"]
+                    data[config["data"]["y_pred"]] > config["surrogate"]["threshold"]
                 ).astype(int),
             )
 
@@ -69,9 +69,9 @@ class SurrogateModel:
         self.X = pd.get_dummies(
             self.X, columns=self.config["data"]["categorical_features"]
         )
-        self.X_fit = self.X
-        # scaler = StandardScaler()
-        # self.X_fit = scaler.fit_transform(self.X)
+        # self.X_fit = self.X
+        scaler = StandardScaler()
+        self.X_fit = scaler.fit_transform(self.X)
 
     def evaluate_Lasso(self, model, y_true):
         logger.info(f"Getting evaluation for Lasso model")
@@ -82,10 +82,11 @@ class SurrogateModel:
 
     def evaluate_LogisticRegression(self, model, y_true):
         logger.info(f"Getting evaluation for LogisticRegression model")
-        y_pred = model.predict(self.X)
+        y_pred = model.predict(self.X_fit)
         f1 = f1_score(y_pred, y_true)
-        for i in range(len(self.X.columns)):
-            logger.debug(f"Coef of feature {self.X.columns[i]}: {model.coef_[0][i]}")
+        df = pd.DataFrame(data=[self.X.columns, model.coef_[0]]).transpose()
+        df.to_csv("data/outputs/logistic_regression.csv", sep=";")
+        logger.debug(f"\n{df}")
         return f1
 
     def evaluate_DecisionTreeRegressor(self, model, y_true):
@@ -106,8 +107,10 @@ class SurrogateModel:
         return r2
 
     def evaluate_DecisionTreeClassifier(self, model, y_true):
-        y_pred = model.predict(self.X)
+        y_pred = model.predict(self.X_fit)
         f1 = f1_score(y_pred, y_true)
+        acc = y_true == y_pred
+        logger.debug(f"acc: \n{sum(acc) / 600}")
         self.evaluate_DecisionTreeRegressor(model, y_true)
         return f1
 
