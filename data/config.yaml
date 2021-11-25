@@ -12,7 +12,6 @@ data:
     - Purpose
     - Savings
     - Group
-    - Gender
   numerical_features:
     - CreditDuration
     - CreditAmount
@@ -60,9 +59,6 @@ data:
     - Group:
         - 0
         - 1
-    - Gender:
-        - 0
-        - 1
   test_size: 0.3
   own_model_path: "data/own_model.joblib"
   prediction_data_path: "data/output.csv"
@@ -94,6 +90,5 @@ output:
   plot_statistical_parity: "data/outputs/statistical_parity"
 
 launcher:
-  class: OwnClassifierModel #OwnClassifierModel
-  func: step_2_3_5_7 #step_2_3_5_7
-
+  class: SurrogateModel #OwnClassifierModel
+  func: train #step_2_3_5_7 
