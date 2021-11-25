@@ -12,6 +12,7 @@ data:
     - Purpose
     - Savings
     - Group
+    - Gender
   numerical_features:
     - CreditDuration
     - CreditAmount
@@ -57,6 +58,9 @@ data:
         - A64
         - A65
     - Group:
+        - 0
+        - 1
+    - Gender:
         - 0
         - 1
   test_size: 0.3
