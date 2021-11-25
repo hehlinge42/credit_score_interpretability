@@ -1,4 +1,4 @@
-Global accuracy: 0.89 with the following classification report: 
+Global accuracy: 0.8883333333333333with the following classification report: 
               precision    recall  f1-score   support
 
            0       0.82      0.82      0.82       183

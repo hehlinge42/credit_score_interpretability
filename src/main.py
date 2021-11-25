@@ -7,7 +7,6 @@ from logzero import logger
 from surrogate import SurrogateModel
 from own_model import OwnClassifierModel
 from pdp import PDP
-from ice import ICE
 
 if __name__ == "__main__":
 

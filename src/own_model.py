@@ -1,8 +1,12 @@
-from os import X_OK
 import pandas as pd
 import numpy as np
+<<<<<<< HEAD
+=======
+from scipy.stats import chisquare
+>>>>>>> d0751908c0c0c81d214e6575bab8eadbb1d4eaf1
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 import shap
 
 from logzero import logger
@@ -51,10 +55,17 @@ class OwnClassifierModel:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
+<<<<<<< HEAD
         self.plot_fairness_partial_dependence()
         # self.plot_partial_dependence()
         # self.plot_ale()
         # self.plot_shap_analysis()
+=======
+        self.plot_partial_dependence()
+        self.plot_ale()
+        self.plot_shap_analysis()
+        self._statistical_parity()
+>>>>>>> d0751908c0c0c81d214e6575bab8eadbb1d4eaf1
 
     def train_model(self) -> None:
         logger.debug(f"Initialisation of training")
@@ -90,7 +101,7 @@ class OwnClassifierModel:
         class_report = classification_report(self.y_test, y_pred)
 
         full_model_perfs = (
-            f"Global accuracy: {acc_score}"
+            f"Global accuracy: {acc_score:0.2f} "
             f"with the following classification report: \n{class_report}"
         )
         logger.debug(f"Classification report obtained: {full_model_perfs}")
@@ -169,7 +180,9 @@ class OwnClassifierModel:
             for i in range(
                 len(self.categorical_features) + len(self.numerical_features)
             )
-        ]  # pdp of categorical features
+        ]
+        logger.debug(f"num features = {self.numerical_features}")
+        logger.debug(f"num features = {self.categorical_features}")
         feature_names = self.categorical_features + self.numerical_features
 
         display = PartialDependenceDisplay.from_estimator(
@@ -251,28 +264,117 @@ class OwnClassifierModel:
         plt.savefig(self.config["output"]["plot_ice"])
 
     def plot_shap_analysis(self) -> None:
-        plt.rcParams["figure.figsize"] = (20, 20)
+        plt.rcParams["figure.figsize"] = (25, 25)
+        plt.rcParams["figure.dpi"] = 50
         logger.debug(f"Initialisation of shap analysis")
         explainer = shap.Explainer(self.model)
         shap_values = explainer.shap_values(self.X_train_preprocessed)
+
+        plt.clf()
+
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.columns,
+            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
             show=False,
         )
         display = plt.gcf()
         plt.savefig(self.config["output"]["plot_shap_beeswarm"])
         logger.debug(f"SHAP beeswarm done")
 
-        shap_values = explainer(self.X_train_preprocessed)
-        display = shap.plots.bar(shap_values, self.X_train_preprocessed, show=False)
+        plt.clf()
+
+        display = shap.summary_plot(
+            shap_values,
+            self.X_train_preprocessed,
+            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
+            show=False,
+            plot_type="bar",
+        )
         display = plt.gcf()
         plt.savefig(self.config["output"]["plot_shap_feature_importance"])
         logger.debug(f"SHAP feature importance done")
 
-        # for i, customer_id in enumerate(self.customers):
-        #     display = shap.plots.bar(shap_values[customer_id])
-        #     # display.figure_.suptitle(f"SHAP plot for customer {customer_id}")
-        #     plt.savefig(self.config["output"]["plot_shap_unique_customer"][i])
-        # logger.debug(f"Individual shaps done")
+        plt.clf()
+
+        X_train_preprocessed_for_shap = pd.DataFrame(self.X_train_preprocessed)
+
+        X_train_preprocessed_for_shap.columns = self.X_train.drop(
+            columns=self.forbidden_columns
+        ).columns
+
+        shap_values = explainer(X_train_preprocessed_for_shap)
+
+        for i, customer_id in enumerate(self.customers):
+            display = shap.plots.bar(shap_values[customer_id], show=False)
+            display = plt.gcf()
+            plt.savefig(self.config["output"]["plot_shap_unique_customer"][i])
+            plt.clf()
+        logger.debug(f"Individual shaps done")
+
+    def fairness_assessment(self) -> None:
+        pass
+
+    def _statistical_parity(self) -> None:
+        logger.debug(f"Statistical parity initialised")
+
+        for feature in self.categorical_features + self.forbidden_columns:
+            series_accepted = (
+                self.X_test.loc[
+                    self.X_test[self.config["output"]["y_pred_cat"]] == 1, feature
+                ]
+                .value_counts(normalize=True)
+                .sort_index()
+            )
+            series_refused = (
+                self.X_test.loc[
+                    self.X_test[self.config["output"]["y_pred_cat"]] == 0, feature
+                ]
+                .value_counts(normalize=True)
+                .sort_index()
+            )
+            if len(series_accepted) == len(series_refused):
+                chi_square_test = chisquare(series_refused, series_accepted)
+                p_val = chi_square_test[1]
+                if p_val < 0.10:
+                    hyptohesis_message = f"the model is unfair on {feature}"
+                else:
+                    hyptohesis_message = (
+                        f"the model is not statistically unfair on {feature}"
+                    )
+
+                series_plot = self.X_test.groupby(self.config["output"]["y_pred_cat"])[
+                    feature
+                ].value_counts(normalize=True)
+                series_plot.mul(100)
+                series_plot = series_plot.rename("percent").reset_index()
+                fig = sns.catplot(
+                    data=pd.DataFrame(series_plot),
+                    x=feature,
+                    y="percent",
+                    hue=self.config["output"]["y_pred_cat"],
+                    kind="bar",
+                )
+
+                plt.title(
+                    f"Statistical parity for {feature} test with p_value"
+                    f"of {p_val:0.2f} which means that {hyptohesis_message}"
+                )
+                fig.savefig(
+                    self.config["output"]["plot_statistical_parity"]
+                    + "_"
+                    + str(feature)
+                )
+
+            else:
+                RaiseValueError(
+                    f"Some categories are not present in both accepted and refused when splitting by {feature}"
+                )
+
+        logger.debug(f"Statistical parity finalised")
+
+
+#     Step 9: Assess the fairness of your own model. Use a Pearson statistic for the following three fairness
+# definitions: Statistical Parity, Conditional Statistical Parity (groups are given in the dataset), and Equal
+# Odds. Discuss your results.
+
