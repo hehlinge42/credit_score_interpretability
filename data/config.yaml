@@ -93,4 +93,4 @@ output:
 
 launcher:
   class: OwnClassifierModel #SurrogateModel
-  func: step_2_3_5_7 #train #step_2_3_5_7
+  func: step_2_3_5_7 #train

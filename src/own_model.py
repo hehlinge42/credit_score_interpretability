@@ -165,9 +165,8 @@ class OwnClassifierModel:
                 len(self.categorical_features) + len(self.numerical_features)
             )
         ]
-        logger.debug(f"num features = {self.numerical_features}")
-        logger.debug(f"num features = {self.categorical_features}")
-        feature_names = self.categorical_features + self.numerical_features
+
+        feature_names = self.numerical_features + self.categorical_features
 
         display = PartialDependenceDisplay.from_estimator(
             self.model,
@@ -175,7 +174,7 @@ class OwnClassifierModel:
             features_idx,
             feature_names=feature_names,
             kind="both",
-            subsample=20,
+            subsample=300,
             ice_lines_kw={"color": "tab:blue", "alpha": 0.2, "linewidth": 0.5},
             pd_line_kw={"color": "tab:orange", "linestyle": "--"},
         )
@@ -183,30 +182,6 @@ class OwnClassifierModel:
             "Partial dependence of credit worthiness  of borrowers with RandomForest"
         )
         plt.savefig(self.config["output"]["plot_pdp"])
-
-    def plot_ice(self) -> None:
-        plt.rcParams["figure.figsize"] = (20, 20)
-
-        features_idx = [
-            i
-            for i in range(
-                len(self.categorical_features) + len(self.numerical_features)
-            )
-        ]  # ice of categorical features
-        feature_names = self.X_test.columns
-        logger.debug(f"features names = {self.X_test.columns}")
-
-        display = PartialDependenceDisplay.from_estimator(
-            self.model,
-            self.X_test_preprocessed,
-            features_idx,
-            feature_names=feature_names,
-            kind="both",
-            ice_lines_kw={"color": "tab:blue", "alpha": 0.2, "linewidth": 0.5},
-            pd_line_kw={"color": "tab:orange", "linestyle": "--"},
-        )
-        display.figure_.suptitle("test")
-        plt.savefig(self.config["output"]["plot_ice"])
 
     def plot_shap_analysis(self) -> None:
         plt.rcParams["figure.figsize"] = (25, 25)
@@ -317,9 +292,3 @@ class OwnClassifierModel:
                 )
 
         logger.debug(f"Statistical parity finalised")
-
-
-#     Step 9: Assess the fairness of your own model. Use a Pearson statistic for the following three fairness
-# definitions: Statistical Parity, Conditional Statistical Parity (groups are given in the dataset), and Equal
-# Odds. Discuss your results.
-
