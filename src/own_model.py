@@ -1,9 +1,6 @@
 import pandas as pd
 import numpy as np
-<<<<<<< HEAD
-=======
 from scipy.stats import chisquare
->>>>>>> d0751908c0c0c81d214e6575bab8eadbb1d4eaf1
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -11,7 +8,7 @@ import shap
 
 from logzero import logger
 from scipy.sparse.construct import random
-from scipy.stats import chisquare
+from scipy.stats import chi2_contingency
 from xgboost import XGBClassifier
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.compose import make_column_transformer
@@ -53,19 +50,13 @@ class OwnClassifierModel:
 
     def step_2_3_5_7(self) -> None:
         self.train_model()
-        self.analyze_model_perfs()
-        self.make_prediction()
-<<<<<<< HEAD
-        self.plot_fairness_partial_dependence()
+        # self.analyze_model_perfs()
+        # self.make_prediction()
         # self.plot_partial_dependence()
         # self.plot_ale()
         # self.plot_shap_analysis()
-=======
-        self.plot_partial_dependence()
-        self.plot_ale()
-        self.plot_shap_analysis()
-        self._statistical_parity()
->>>>>>> d0751908c0c0c81d214e6575bab8eadbb1d4eaf1
+        # self._statistical_parity()
+        self.plot_fairness_partial_dependence()
 
     def train_model(self) -> None:
         logger.debug(f"Initialisation of training")
@@ -201,18 +192,6 @@ class OwnClassifierModel:
         plt.savefig(self.config["output"]["plot_pdp"])
 
     def plot_fairness_partial_dependence(self) -> None:
-        # Option 1
-
-        # logger.warn(self.features_idx)
-        # self.raw_values, _ = partial_dependence(self.model, self.X_test_preprocessed, [0, 1], method='brute', grid_resolution=100)
-
-        # logger.info("Printing PDP raw values")
-        # logger.info(self.raw_values)
-        # logger.info(f"Shape : {self.raw_values.shape}")
-        print(self.X_test.columns)
-        # mask_male = self.X_test.loc[self.X_test['Gender']==0, 'Gender']
-        mask_male = self.X_test['Gender']==0
-        # Option 2 
         def plot_feature(feature_name):
             pval_ls = []
             column_idx = self.X_test.columns.get_loc(feature_name)
@@ -220,31 +199,27 @@ class OwnClassifierModel:
             logger.info(f"The distinct values are {distinct_values}")
             for c_j in distinct_values:
                 
-                # X_modified = self.X_test.copy()
-                # X_modified = self._preprocess_data(X_modified)
                 X_modified = self.X_test_preprocessed.copy()
                 X_modified[:, column_idx] = c_j
-                print(X_modified)
+
                 y_pred = self.model.predict(X_modified)
-                print(mask_male)
-                print(~mask_male)
-                # y_pred_male = y_pred[mask_male]
-                # y_pred_female = y_pred[~mask_male]
-
-                # A faire avec les index
-                # df_contingency = self.X_test['Gender']
-                # df_contingency['Prediction'] = y_pred
                 df_contingency = pd.crosstab(self.X_test['Gender'], y_pred)
-                print(df_contingency)
-                # count_male_loan, count_male_no_loan = df_contingency.sum(), len(mask_male) - mask_male.sum()
-                # count_female_loan, count_female_no_loan = 1, 2
-                # contingency_table = np.asarray([[count_male_no_loan, count_male_loan], []])
 
-                # _, p_val = chisquare(f_obs=y_pred_male, f_exp=y_pred_female)
-                # pval_ls.append(p_val)
-            print(pval_ls)
+                _, p_val, _, _ = chi2_contingency(df_contingency.values)
+                pval_ls.append(p_val)
+
+            data = pd.DataFrame(data={feature_name:distinct_values, 'p-vals':np.array(pval_ls)})
+            fig = sns.barplot(data=data, x=feature_name, y='p-values', color='lightblue')
+            plt.axhline(0.1,0,1, c='r')
+            plt.savefig(
+                self.config["output"]["plot_fairness_dependence_plot"]
+                + "_"
+                + str(feature_name)
+            )
+        
+        for column in self.categorical_features:
+            plot_feature(column)
             
-        plot_feature("Housing")
 
     def plot_ice(self) -> None:
         plt.rcParams["figure.figsize"] = (20, 20)
