@@ -12,7 +12,6 @@ data:
     - Purpose
     - Savings
     - Group
-    - Gender
   numerical_features:
     - CreditDuration
     - CreditAmount
@@ -60,9 +59,6 @@ data:
     - Group:
         - 0
         - 1
-    - Gender:
-        - 0
-        - 1
   test_size: 0.3
   own_model_path: "data/model/own_model.joblib"
   prediction_data_path: "data/model/output.csv"
@@ -93,6 +89,8 @@ output:
     - "data/outputs/SHAP/shap_customer_3.png"
   plot_fairness_dependence_plot: "data/outputs/FPDP/FPDP"
   plot_statistical_parity: "data/outputs/stat_parity/statistical_parity"
+  plot_conditional_statistical_parity_grp1: "data/outputs/cond_stat_parity/group_1_statistical_parity"
+  plot_conditional_statistical_parity_grp0: "data/outputs/cond_stat_parity/group_0_statistical_parity"
   tree_vis: "data/outputs/tree_vis/tree_visualisation.png"
   tree_text: "data/outputs/tree_vis/tree.txt"
 

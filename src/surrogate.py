@@ -17,7 +17,6 @@ class SurrogateModel:
         self.config = config
 
         self.models = config["surrogate"]["models"]
-        logger.debug(self.models)
         self.model_types_str = []
         self.model_types = []
         self.model_kwargs = []
@@ -84,7 +83,6 @@ class SurrogateModel:
         y_pred = model.predict(self.X_fit)
         f1 = f1_score(y_pred, y_true)
         df = pd.DataFrame(data=[self.X.columns, model.coef_[0]]).transpose()
-        logger.debug(f"\n{df}")
         return f1
 
     def evaluate_DecisionTreeRegressor(self, model, y_true):
@@ -104,14 +102,12 @@ class SurrogateModel:
         )
         with open(self.config["output"]["tree_text"], "w") as text_file:
             text_file.write(text_representation)
-        logger.debug(f"\n{text_representation}")
         return r2
 
     def evaluate_DecisionTreeClassifier(self, model, y_true):
         y_pred = model.predict(self.X_fit)
         f1 = f1_score(y_pred, y_true)
         acc = y_true == y_pred
-        logger.debug(f"acc: \n{sum(acc) / 600}")
         self.evaluate_DecisionTreeRegressor(model, y_true)
         return f1
 

@@ -10,7 +10,7 @@ from logzero import logger
 from scipy.sparse.construct import random
 from scipy.stats import chi2_contingency
 from xgboost import XGBClassifier
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder, KBinsDiscretizer
 from sklearn.compose import make_column_transformer
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from joblib import dump
@@ -56,8 +56,7 @@ class OwnClassifierModel:
         self.plot_partial_dependence()
         self.plot_ale()
         self.plot_shap_analysis()
-        self._statistical_parity()
-        self.plot_fairness_partial_dependence()
+        self.fairness_assessment()
 
     def train_model(self) -> None:
         logger.debug(f"Initialisation of training")
@@ -66,7 +65,6 @@ class OwnClassifierModel:
             drop=True
         )
         y_train = self.X_train[self.prediction_column]
-        print(y_train)
         self.X_train.drop(
             columns=[self.prediction_column, self.existing_pred], inplace=True
         )
@@ -80,6 +78,7 @@ class OwnClassifierModel:
         self.model = XGBClassifier(
             random_state=self.random_state, use_label_encoder=False
         )
+
         self.model.fit(self.X_train_preprocessed, y_train)
         logger.debug(f"Model trained")
 
@@ -117,21 +116,33 @@ class OwnClassifierModel:
     def _preprocess_data(self) -> None:
         logger.debug(f"Initialisation of pre_processing")
         self.X_train_preprocessed = self.X_train.copy()
+
         categories = [[v for v in x.values()][0] for x in self.cat_features_order]
-        logger.debug(categories)
         pipeline_preprocessing = make_column_transformer(
             ("passthrough", self.numerical_features),
             (OrdinalEncoder(categories=categories), self.categorical_features),
-            ("drop", self.forbidden_columns),
         )
+
+        self.X_train_preprocessed = self.X_train_preprocessed.drop(
+            columns=self.forbidden_columns, axis=1
+        )
+
+        self.X_test_preprocessed = self.X_test.drop(
+            columns=self.prediction_column, axis=1
+        )
+        self.X_test_preprocessed = self.X_test_preprocessed.drop(
+            columns=self.existing_pred, axis=1
+        )
+        self.X_test_preprocessed = self.X_test_preprocessed.drop(
+            columns=self.forbidden_columns, axis=1
+        )
+
         self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
             self.X_train_preprocessed
         )
-        logger.debug(f"{pipeline_preprocessing.transformers_}")
-        self.X_test = self.X_test.drop(
-            columns=[self.prediction_column, self.existing_pred]
+        self.X_test_preprocessed = pipeline_preprocessing.transform(
+            self.X_test_preprocessed
         )
-        self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
 
     def plot_ale(self) -> None:
         fig, ax = plt.subplots(figsize=(20, 20), nrows=3, ncols=5)
@@ -141,7 +152,7 @@ class OwnClassifierModel:
             self.X_test_preprocessed,
             columns=self.numerical_features + self.categorical_features,
         )
-        logger.debug(f"\n{X_df.shape}")
+
         for i, feature in enumerate(self.numerical_features):
             result = ale(
                 X=X_df,
@@ -255,7 +266,9 @@ class OwnClassifierModel:
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
+            feature_names=self.X_train.drop(
+                columns=self.forbidden_columns, axis=1
+            ).columns,
             show=False,
         )
         display = plt.gcf()
@@ -267,7 +280,9 @@ class OwnClassifierModel:
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
+            feature_names=self.X_train.drop(
+                columns=self.forbidden_columns, axis=1
+            ).columns,
             show=False,
             plot_type="bar",
         )
@@ -293,26 +308,85 @@ class OwnClassifierModel:
         logger.debug(f"Individual shaps done")
 
     def fairness_assessment(self) -> None:
-        pass
+        self._statistical_parity()
+        self._conditional_statistical_parity()
 
     def _statistical_parity(self) -> None:
         logger.debug(f"Statistical parity initialised")
 
-        for feature in self.categorical_features + self.forbidden_columns:
-            series_accepted = (
-                self.X_test.loc[
-                    self.X_test[self.config["output"]["y_pred_cat"]] == 1, feature
-                ]
-                .value_counts(normalize=True)
-                .sort_index()
-            )
-            series_refused = (
-                self.X_test.loc[
-                    self.X_test[self.config["output"]["y_pred_cat"]] == 0, feature
-                ]
-                .value_counts(normalize=True)
-                .sort_index()
-            )
+        nb_bin = 5
+        l_features = (
+            self.categorical_features + self.forbidden_columns + self.numerical_features
+        )
+
+        self._plot_statistical_parity(
+            l_features,
+            self.numerical_features,
+            self.X_test,
+            nb_bin,
+            "plot_statistical_parity",
+        )
+
+        logger.debug(f"Statistical parity finalised")
+
+    @staticmethod
+    def _column_values_distribution_split_by_outcome(
+        df: pd.DataFrame, outcome_column: str, desired_outcome_value, feature: str
+    ):
+        return (
+            df.loc[df[outcome_column] == desired_outcome_value, feature]
+            .value_counts(normalize=True)
+            .sort_index()
+        )
+
+    def _conditional_statistical_parity(self) -> None:
+        logger.debug(f"Conditional statistical parity initialised")
+
+        nb_bin = 5
+        l_features_but_group = (
+            self.categorical_features + self.forbidden_columns + self.numerical_features
+        )
+        l_features_but_group.remove("Group")
+
+        self._plot_statistical_parity(
+            l_features_but_group,
+            self.numerical_features,
+            self.X_test[self.X_test["Group"] == 1],
+            nb_bin,
+            "plot_conditional_statistical_parity_grp1",
+        )
+        self._plot_statistical_parity(
+            l_features_but_group,
+            self.numerical_features,
+            self.X_test[self.X_test["Group"] == 0],
+            nb_bin,
+            "plot_conditional_statistical_parity_grp0",
+        )
+
+        logger.debug(f"Conditional statistical parity finished")
+
+    def _plot_statistical_parity(
+        self, l_features, numerical_features, df_test, nb_bin, output_path
+    ):
+        df = df_test.copy()
+        for feature in l_features:
+            if feature in numerical_features:
+                df[feature] = pd.cut(df[feature], bins=nb_bin)
+                series_accepted = self._column_values_distribution_split_by_outcome(
+                    df, self.config["output"]["y_pred_cat"], 1, feature
+                )
+                series_refused = self._column_values_distribution_split_by_outcome(
+                    df, self.config["output"]["y_pred_cat"], 0, feature
+                )
+
+            else:
+                series_accepted = self._column_values_distribution_split_by_outcome(
+                    df, self.config["output"]["y_pred_cat"], 1, feature
+                )
+                series_refused = self._column_values_distribution_split_by_outcome(
+                    df, self.config["output"]["y_pred_cat"], 0, feature
+                )
+
             if len(series_accepted) == len(series_refused):
                 chi_square_test = chisquare(series_refused, series_accepted)
                 p_val = chi_square_test[1]
@@ -323,32 +397,34 @@ class OwnClassifierModel:
                         f"the model is not statistically unfair on {feature}"
                     )
 
-                series_plot = self.X_test.groupby(self.config["output"]["y_pred_cat"])[
+                series_plot = df.groupby(self.config["output"]["y_pred_cat"])[
                     feature
                 ].value_counts(normalize=True)
                 series_plot.mul(100)
                 series_plot = series_plot.rename("percent").reset_index()
-                fig = sns.catplot(
-                    data=pd.DataFrame(series_plot),
-                    x=feature,
-                    y="percent",
-                    hue=self.config["output"]["y_pred_cat"],
-                    kind="bar",
-                )
-
+                try:
+                    fig = sns.catplot(
+                        data=pd.DataFrame(series_plot),
+                        x=feature,
+                        y="percent",
+                        hue=self.config["output"]["y_pred_cat"],
+                        kind="bar",
+                    )
+                except:
+                    fig = sns.catplot(
+                        data=pd.DataFrame(series_plot),
+                        x="level_1",
+                        y="percent",
+                        hue=self.config["output"]["y_pred_cat"],
+                        kind="bar",
+                    )
                 plt.title(
                     f"Statistical parity for {feature} test with p_value"
                     f"of {p_val:0.2f} which means that {hyptohesis_message}"
                 )
-                fig.savefig(
-                    self.config["output"]["plot_statistical_parity"]
-                    + "_"
-                    + str(feature)
-                )
+                fig.savefig(self.config["output"][output_path] + "_" + str(feature))
 
             else:
-                RaiseValueError(
+                print(
                     f"Some categories are not present in both accepted and refused when splitting by {feature}"
                 )
-
-        logger.debug(f"Statistical parity finalised")
