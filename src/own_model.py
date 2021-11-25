@@ -160,8 +160,14 @@ class OwnClassifierModel:
 
     def plot_partial_dependence(self) -> None:
         plt.rcParams["figure.figsize"] = (20, 20)
-        feature_names = self.X_test.columns
-        logger.debug(f"features names = {self.X_test.columns}")
+
+        features_idx = [
+            i
+            for i in range(
+                len(self.categorical_features) + len(self.numerical_features)
+            )
+        ]  # pdp of categorical features
+        feature_names = self.categorical_features + self.numerical_features
 
         display = PartialDependenceDisplay.from_estimator(
             self.model,
@@ -194,6 +200,7 @@ class OwnClassifierModel:
             distinct_values = self.X_test[feature_name].unique()
             for c_j in distinct_values:
                 X_modified = self.X_test.copy()
+                print(X_modified.columns)
                 X_modified[feature_name] = c_j
                 y_pred = self.model.predict(X_modified)
                 y_pred_male = y_pred[mask_male]
@@ -247,4 +254,3 @@ class OwnClassifierModel:
         #     # display.figure_.suptitle(f"SHAP plot for customer {customer_id}")
         #     plt.savefig(self.config["output"]["plot_shap_unique_customer"][i])
         # logger.debug(f"Individual shaps done")
-
