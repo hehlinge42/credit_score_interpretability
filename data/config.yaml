@@ -3,6 +3,8 @@ data:
   inputs: "data/input.csv"
   y_true: CreditRisk (y)
   y_pred: y_hat
+  forbidden_columns:
+    - Gender
   categorical_features:
     - CreditHistory
     - EmploymentDuration
@@ -77,6 +79,8 @@ surrogate:
       max_depth: 4
 
 output:
+  y_pred_proba: y_hat_own_model_proba
+  y_pred_cat: y_hat_own_model_cat
   plot_tree: "data/outputs/surrogate_decision_tree.png"
   plot_pdp: "data/outputs/pdp_plots.png"
   plot_ale: "data/outputs/ale_plots"
@@ -88,6 +92,6 @@ output:
     - "data/outputs/shap_customer_3.png"
 
 launcher:
-  class: "OwnClassifierModel" # SurrogateModel
-  func: "step_2_3_5_7" # train
+  class: OwnClassifierModel #OwnClassifierModel
+  func: step_2_3_5_7 #step_2_3_5_7
 

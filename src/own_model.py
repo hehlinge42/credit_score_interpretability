@@ -6,7 +6,6 @@ import shap
 
 from logzero import logger
 from scipy.sparse.construct import random
-from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.compose import make_column_transformer
@@ -211,17 +210,15 @@ class OwnClassifierModel:
             self.X_train_preprocessed,
             feature_names=self.X_train.columns,
             show=False,
-            type="bars",
         )
         display = plt.gcf()
-        # display.figure_.suptitle("SHAP summary plot of the full model")
         print(self.config["output"]["plot_shap_beeswarm"])
         plt.savefig(self.config["output"]["plot_shap_beeswarm"])
-        logger.debug(f"General shap done")
+        logger.debug(f"SHAP beeswarm done")
 
-        for i, customer_id in enumerate(self.customers):
-            display = shap.plots.bar(shap_values[customer_id])
-            # display.figure_.suptitle(f"SHAP plot for customer {customer_id}")
-            plt.savefig(self.config["output"]["plot_shap_unique_customer"][i])
-        logger.debug(f"Individual shaps done")
+        # for i, customer_id in enumerate(self.customers):
+        #     display = shap.plots.bar(shap_values[customer_id])
+        #     # display.figure_.suptitle(f"SHAP plot for customer {customer_id}")
+        #     plt.savefig(self.config["output"]["plot_shap_unique_customer"][i])
+        # logger.debug(f"Individual shaps done")
 
