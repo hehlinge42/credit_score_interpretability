@@ -8,4 +8,6 @@ matplotlib
 jupyter
 shap
 PyALE
+seaborn
+scipy
 xgboost

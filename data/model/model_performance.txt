@@ -1,0 +1,9 @@
+Global accuracy: 0.8883333333333333with the following classification report: 
+              precision    recall  f1-score   support
+
+           0       0.82      0.82      0.82       183
+           1       0.92      0.92      0.92       417
+
+    accuracy                           0.89       600
+   macro avg       0.87      0.87      0.87       600
+weighted avg       0.89      0.89      0.89       600

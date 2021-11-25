@@ -46,10 +46,10 @@ class OwnClassifierModel:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
-        # self.plot_partial_dependence()
-        # self.plot_ale()
-        self.plot_shap_analysis()
-        self._statistical_parity()
+        self.plot_partial_dependence()
+        self.plot_ale()
+        # self.plot_shap_analysis()
+        # self._statistical_parity()
 
     def train_model(self) -> None:
         logger.debug(f"Initialisation of training")
@@ -164,8 +164,10 @@ class OwnClassifierModel:
             for i in range(
                 len(self.categorical_features) + len(self.numerical_features)
             )
-        ]  # pdp of categorical features
-        feature_names = self.categorical_features + self.numerical_features
+        ]
+        logger.debug(f"num features = {self.numerical_features}")
+        logger.debug(f"num features = {self.categorical_features}")
+        feature_names = self.numerical_features + self.categorical_features
 
         display = PartialDependenceDisplay.from_estimator(
             self.model,
@@ -316,4 +318,3 @@ class OwnClassifierModel:
 #     Step 9: Assess the fairness of your own model. Use a Pearson statistic for the following three fairness
 # definitions: Statistical Parity, Conditional Statistical Parity (groups are given in the dataset), and Equal
 # Odds. Discuss your results.
-
