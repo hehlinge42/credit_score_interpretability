@@ -164,7 +164,9 @@ class OwnClassifierModel:
             for i in range(
                 len(self.categorical_features) + len(self.numerical_features)
             )
-        ]  # pdp of categorical features
+        ]
+        logger.debug(f"num features = {self.numerical_features}")
+        logger.debug(f"num features = {self.categorical_features}")
         feature_names = self.categorical_features + self.numerical_features
 
         display = PartialDependenceDisplay.from_estimator(
@@ -260,9 +262,6 @@ class OwnClassifierModel:
 
     def _statistical_parity(self) -> None:
         logger.debug(f"Statistical parity initialised")
-
-        print(self.categorical_features)
-        print(self.forbidden_columns)
 
         for feature in self.categorical_features + self.forbidden_columns:
             series_accepted = (

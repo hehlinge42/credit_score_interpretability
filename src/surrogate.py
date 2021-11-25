@@ -69,7 +69,6 @@ class SurrogateModel:
         self.X = pd.get_dummies(
             self.X, columns=self.config["data"]["categorical_features"]
         )
-        # self.X_fit = self.X
         scaler = StandardScaler()
         self.X_fit = scaler.fit_transform(self.X)
 
@@ -85,7 +84,6 @@ class SurrogateModel:
         y_pred = model.predict(self.X_fit)
         f1 = f1_score(y_pred, y_true)
         df = pd.DataFrame(data=[self.X.columns, model.coef_[0]]).transpose()
-        df.to_csv("data/outputs/logistic_regression.csv", sep=";")
         logger.debug(f"\n{df}")
         return f1
 
@@ -95,13 +93,16 @@ class SurrogateModel:
         plt.rcParams["figure.figsize"] = (20, 20)
         plt.rcParams["figure.dpi"] = 75
         display = tree.plot_tree(
-            model, filled=True, fontsize=8.5, feature_names=list(self.X.columns),
+            model,
+            filled=True,
+            fontsize=8.5,
+            feature_names=list(self.X.columns),
         )
-        plt.savefig("data/tree_visualisation.png")
+        plt.savefig(self.config["output"]["tree_vis"])
         text_representation = tree.export_text(
             model, feature_names=list(self.X.columns)
         )
-        with open("data/tree.txt", "w") as text_file:
+        with open(self.config["output"]["tree_text"], "w") as text_file:
             text_file.write(text_representation)
         logger.debug(f"\n{text_representation}")
         return r2

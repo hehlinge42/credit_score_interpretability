@@ -60,8 +60,8 @@ data:
         - 0
         - 1
   test_size: 0.3
-  own_model_path: "data/own_model.joblib"
-  prediction_data_path: "data/output.csv"
+  own_model_path: "data/model/own_model.joblib"
+  prediction_data_path: "data/model/output.csv"
 
 surrogate:
   threshold: 0.82
@@ -77,18 +77,20 @@ surrogate:
 output:
   y_pred_proba: y_hat_own_model_proba
   y_pred_cat: y_hat_own_model_cat
-  plot_tree: "data/outputs/surrogate_decision_tree.png"
-  plot_pdp: "data/outputs/pdp_plots.png"
-  plot_ale: "data/outputs/ale_plots"
-  txt_perfs: "data/outputs/model_performance.txt"
-  plot_shap_beeswarm: "data/outputs/shap_general.png"
-  plot_shap_feature_importance: "data/outputs/shap_feature_importance.png"
+  plot_tree: "data/outputs/tree_vis/surrogate_decision_tree.png"
+  plot_pdp: "data/outputs/PDP/pdp_plots.png"
+  plot_ale: "data/outputs/ALE/ale_plots"
+  txt_perfs: "data/outputs/model/model_performance.txt"
+  plot_shap_beeswarm: "data/outputs/SHAP/shap_general.png"
+  plot_shap_feature_importance: "data/outputs/SHAP/shap_feature_importance.png"
   plot_shap_unique_customer:
-    - "data/outputs/shap_customer_1.png"
-    - "data/outputs/shap_customer_2.png"
-    - "data/outputs/shap_customer_3.png"
-  plot_statistical_parity: "data/outputs/statistical_parity"
+    - "data/outputs/SHAP/shap_customer_1.png"
+    - "data/outputs/SHAP/shap_customer_2.png"
+    - "data/outputs/SHAP/shap_customer_3.png"
+  plot_statistical_parity: "data/outputs/stat_parity/statistical_parity"
+  tree_vis: "data/outputs/tree_vis/tree_visualisation.png"
+  tree_text: "data/outputs/tree_vis/tree.txt"
 
 launcher:
-  class: OwnClassifierModel #OwnClassifierModel
-  func: step_2_3_5_7 #step_2_3_5_7
+  class: OwnClassifierModel #SurrogateModel
+  func: step_2_3_5_7 #train #step_2_3_5_7
