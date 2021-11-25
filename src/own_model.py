@@ -1,13 +1,16 @@
+from os import X_OK
 import pandas as pd
+
 import matplotlib.pyplot as plt
 import shap
 
 from logzero import logger
 from scipy.sparse.construct import random
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import OrdinalEncoder, StandardScaler
+from xgboost import XGBClassifier
+from sklearn.preprocessing import OrdinalEncoder
 from sklearn.compose import make_column_transformer
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, classification_report
 from joblib import dump
 
 from sklearn.inspection import PartialDependenceDisplay
@@ -18,35 +21,6 @@ shap.initjs()
 
 
 class OwnClassifierModel:
-
-    # CAT_FEATURES_ORDINAL = {
-    #     "CreditHistory": ["A30", "A31", "A32", "A33", "A34"],
-    #     "EmploymentDuration": [
-    #         "A71",
-    #         "A72",
-    #         "A73",
-    #         "A74",
-    #         "A75",
-    #     ],  # No need to challenge
-    #     "Housing": ["A153", "A151", "A152"],
-    #     "Purpose": [
-    #         "A40",
-    #         "A410",
-    #         "A45",
-    #         "A46",
-    #         "A49",
-    #         "A48",
-    #         "A42",
-    #         "A44",
-    #         "A43",
-    #         "A41",
-    #     ],
-    #     # "Purpose": ["A40", "A42", "A43", "A44"],
-    #     "Savings": ["A61", "A62", "A63", "A64", "A65"],  # No need to challenge
-    #     "Group": ["0", "1"],
-    #     "Gender": ["0", "1"],
-    # }
-
     def __init__(self, config) -> None:
         self.config = config
 
@@ -59,17 +33,89 @@ class OwnClassifierModel:
         self.categorical_features = self.config["data"]["categorical_features"]
         self.numerical_features = self.config["data"]["numerical_features"]
         self.prediction_column = self.config["data"]["y_true"]
+        self.existing_pred = self.config["data"]["y_pred"]
         self.test_size = self.config["data"]["test_size"]
         self.random_state = self.config["data"]["random_state"]
         self.model_path = self.config["data"]["own_model_path"]
         self.output_data_path = self.config["data"]["prediction_data_path"]
+        self.customers = self.config["data"]["chosen_random_customers"]
 
     def step_2_3_5_7(self) -> None:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
         # self.plot_partial_dependence()
-        self.plot_ale()
+        # self.plot_ale()
+        self.plot_shap_analysis()
+
+    def train_model(self) -> None:
+        logger.debug(f"Initialisation of training")
+
+        self.X_train = self.data[self.data[self.existing_pred].isna()].reset_index(
+            drop=True
+        )
+        y_train = self.X_train[self.prediction_column]
+        print(y_train)
+        self.X_train.drop(
+            columns=[self.prediction_column, self.existing_pred], inplace=True
+        )
+        self.X_test = self.data.dropna(axis="index").reset_index(drop=True)
+        self.y_test = self.X_test[self.prediction_column]
+        logger.debug(f"Separated train from test datasets")
+
+        self._preprocess_data()
+        logger.debug(f"Pre-processing done")
+
+        self.model = XGBClassifier(
+            random_state=self.random_state, use_label_encoder=False
+        )
+        self.model.fit(self.X_train_preprocessed, y_train)
+        logger.debug(f"Model trained")
+
+        dump(self.model, self.model_path)
+        logger.debug(f"Model saved")
+
+    def analyze_model_perfs(self) -> None:
+        logger.debug(f"Initialisation of performance analyses")
+        y_pred = self.model.predict(self.X_test_preprocessed)
+        acc_score = accuracy_score(self.y_test, y_pred)
+        class_report = classification_report(self.y_test, y_pred)
+
+        full_model_perfs = (
+            f"Global accuracy: {acc_score}"
+            f"with the following classification report: {class_report}"
+        )
+        logger.debug(f"Classification report obtained: {full_model_perfs}")
+        perfs_txt = open(self.config["output"]["txt_perfs"], "w")
+        perfs_txt.write(full_model_perfs)
+        perfs_txt.close()
+
+    def make_prediction(self) -> None:
+        logger.debug(f"Initialisation of predictions")
+        y_pred_scores = self.model.predict_proba(self.X_test_preprocessed)
+        logger.debug(f"Scores obtained")
+        self.X_test["y_hat_own_model"] = y_pred_scores[:, 1]
+
+        self.X_test.to_csv(self.output_data_path, sep=";", index=False)
+        logger.debug(f"Data exported")
+
+    def _preprocess_data(self) -> None:
+        logger.debug(f"Initialisation of pre_processing")
+        self.X_train_preprocessed = self.X_train.copy()
+        categories = [[v for v in x.values()][0] for x in self.cat_features_order]
+        logger.debug(categories)
+        pipeline_preprocessing = make_column_transformer(
+            ("passthrough", self.numerical_features),
+            (OrdinalEncoder(categories=categories), self.categorical_features,),
+        )
+        self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
+            self.X_train_preprocessed
+        )
+        logger.debug(f"{pipeline_preprocessing.transformers_}")
+        self.X_test = self.X_test.drop(
+            columns=[self.prediction_column, self.existing_pred]
+        )
+        self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
 
     def plot_ale(self) -> None:
         fig, ax = plt.subplots(figsize=(20, 20), nrows=3, ncols=5)
@@ -155,73 +201,27 @@ class OwnClassifierModel:
         display.figure_.suptitle("test")
         plt.savefig(self.config["output"]["plot_ice"])
 
-    def train_model(self) -> None:
-        logger.debug(f"Initializing {self.__class__.__name__}")
-
-        self.X_train = self.data[self.data["y_hat"].isna()].reset_index(drop=True)
-        # TODO: put in config file for y_hat (cleaner)
-        y_train = self.X_train[self.prediction_column]
-        self.X_train.drop(columns=[self.prediction_column, "y_hat"], inplace=True)
-        self.X_test = self.data.dropna(axis="index").reset_index(drop=True)
-        self.y_test = self.X_test[self.prediction_column]
-        logger.debug(f"Separated train from test datasets")
-
-        self._preprocess_data()
-        logger.debug(f"Pre-processing done")
-
-        self.model = RandomForestClassifier(random_state=self.random_state)
-        self.model.fit(self.X_train_preprocessed, y_train)
-        logger.debug(f"Model trained")
-
-        dump(self.model, self.model_path)
-        logger.debug(f"Model saved")
-
-    def analyze_model_perfs(
-        self,
-    ) -> None:  # TODO: decide which outputs we want and what we do with them
-
-        logger.debug(f"Initializing {self.__class__.__name__}")
-        y_pred = self.model.predict(self.X_test_preprocessed)
-        acc_score = accuracy_score(
-            self.y_test, y_pred
-        )  # TODO: need to save it somewhere ?
-        conf_matrix = confusion_matrix(
-            self.y_test, y_pred
-        )  # TODO: need to save it somewhere ?
-        class_report = classification_report(self.y_test, y_pred)  # My favourite one
-        logger.debug(f"Classification report obtained")
-        print(class_report)
-
-    def make_prediction(self) -> None:
-        logger.debug(f"Initializing {self.__class__.__name__}")
-        y_pred_scores = self.model.predict_proba(self.X_test_preprocessed)
-        logger.debug(f"Scores obtained")
-        self.X_test["y_hat_own_model"] = y_pred_scores[:, 1]
-
-        self.X_test.to_csv(self.output_data_path, sep=";", index=False)
-        logger.debug(f"Data exported")
-
-    def _preprocess_data(self) -> None:
-        logger.debug(f"Initializing {__class__.__name__}")
-        self.X_train_preprocessed = self.X_train.copy()
-        categories = [[v for v in x.values()][0] for x in self.cat_features_order]
-        logger.debug(categories)
-        pipeline_preprocessing = make_column_transformer(
-            ("passthrough", self.numerical_features),
-            (OrdinalEncoder(categories=categories), self.categorical_features,),
-            # TODO: check whether we want one-hot encoder instead (risk of fucking with SHAP and other methods)
-        )  # TODO: check whether we need other pre-processing steps (NAs, etc.)
-        self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
-            self.X_train_preprocessed
-        )
-        logger.debug(f"{pipeline_preprocessing.transformers_}")
-        self.X_test = self.X_test.drop(columns=[self.prediction_column, "y_hat"])
-        self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
-
-    def shap_analysis(self) -> None:
+    def plot_shap_analysis(self) -> None:
+        plt.rcParams["figure.figsize"] = (20, 20)
+        logger.debug(f"Initialisation of shap analysis")
         explainer = shap.Explainer(self.model)
-        shap_values = explainer(self.X_train_preprocessed)
-        shap.plots.beeswarm(shap_values)
-        for customer_id in self.customers:
-            shap.plots.bar(shap_values[customer_id])
+        shap_values = explainer.shap_values(self.X_train_preprocessed)
+        display = shap.summary_plot(
+            shap_values,
+            self.X_train_preprocessed,
+            feature_names=self.X_train.columns,
+            show=False,
+            type="bars",
+        )
+        display = plt.gcf()
+        # display.figure_.suptitle("SHAP summary plot of the full model")
+        print(self.config["output"]["plot_shap_beeswarm"])
+        plt.savefig(self.config["output"]["plot_shap_beeswarm"])
+        logger.debug(f"General shap done")
+
+        for i, customer_id in enumerate(self.customers):
+            display = shap.plots.bar(shap_values[customer_id])
+            # display.figure_.suptitle(f"SHAP plot for customer {customer_id}")
+            plt.savefig(self.config["output"]["plot_shap_unique_customer"][i])
+        logger.debug(f"Individual shaps done")
 
