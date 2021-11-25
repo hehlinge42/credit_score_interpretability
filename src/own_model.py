@@ -18,35 +18,6 @@ shap.initjs()
 
 
 class OwnClassifierModel:
-
-    # CAT_FEATURES_ORDINAL = {
-    #     "CreditHistory": ["A30", "A31", "A32", "A33", "A34"],
-    #     "EmploymentDuration": [
-    #         "A71",
-    #         "A72",
-    #         "A73",
-    #         "A74",
-    #         "A75",
-    #     ],  # No need to challenge
-    #     "Housing": ["A153", "A151", "A152"],
-    #     "Purpose": [
-    #         "A40",
-    #         "A410",
-    #         "A45",
-    #         "A46",
-    #         "A49",
-    #         "A48",
-    #         "A42",
-    #         "A44",
-    #         "A43",
-    #         "A41",
-    #     ],
-    #     # "Purpose": ["A40", "A42", "A43", "A44"],
-    #     "Savings": ["A61", "A62", "A63", "A64", "A65"],  # No need to challenge
-    #     "Group": ["0", "1"],
-    #     "Gender": ["0", "1"],
-    # }
-
     def __init__(self, config) -> None:
         self.config = config
 
@@ -194,9 +165,11 @@ class OwnClassifierModel:
 
     def make_prediction(self) -> None:
         logger.debug(f"Initializing {self.__class__.__name__}")
+        y_pred = self.model.predict(self.X_test_preprocessed)
         y_pred_scores = self.model.predict_proba(self.X_test_preprocessed)
         logger.debug(f"Scores obtained")
-        self.X_test["y_hat_own_model"] = y_pred_scores[:, 1]
+        self.X_test[self.config["output"]["y_pred_proba"]] = y_pred_scores[:, 1]
+        self.X_test[self.config["output"]["y_pred_cat"]] = y_pred
 
         self.X_test.to_csv(self.output_data_path, sep=";", index=False)
         logger.debug(f"Data exported")
@@ -205,7 +178,6 @@ class OwnClassifierModel:
         logger.debug(f"Initializing {__class__.__name__}")
         self.X_train_preprocessed = self.X_train.copy()
         categories = [[v for v in x.values()][0] for x in self.cat_features_order]
-        logger.debug(categories)
         pipeline_preprocessing = make_column_transformer(
             ("passthrough", self.numerical_features),
             (OrdinalEncoder(categories=categories), self.categorical_features,),
@@ -214,7 +186,6 @@ class OwnClassifierModel:
         self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
             self.X_train_preprocessed
         )
-        logger.debug(f"{pipeline_preprocessing.transformers_}")
         self.X_test = self.X_test.drop(columns=[self.prediction_column, "y_hat"])
         self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
 

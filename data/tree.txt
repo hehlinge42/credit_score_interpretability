@@ -1,0 +1,40 @@
+|--- CreditDuration <= 34.50
+|   |--- CreditHistory_A34 <= 0.50
+|   |   |--- Purpose_A40 <= 0.50
+|   |   |   |--- Age <= 22.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- Age >  22.50
+|   |   |   |   |--- class: 1
+|   |   |--- Purpose_A40 >  0.50
+|   |   |   |--- CreditAmount <= 1455.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- CreditAmount >  1455.50
+|   |   |   |   |--- class: 1
+|   |--- CreditHistory_A34 >  0.50
+|   |   |--- CreditAmount <= 11651.50
+|   |   |   |--- Purpose_A46 <= 0.50
+|   |   |   |   |--- class: 1
+|   |   |   |--- Purpose_A46 >  0.50
+|   |   |   |   |--- class: 1
+|   |   |--- CreditAmount >  11651.50
+|   |   |   |--- class: 0
+|--- CreditDuration >  34.50
+|   |--- Purpose_A42 <= 0.50
+|   |   |--- Housing_A152 <= 0.50
+|   |   |   |--- CreditAmount <= 7454.00
+|   |   |   |   |--- class: 0
+|   |   |   |--- CreditAmount >  7454.00
+|   |   |   |   |--- class: 0
+|   |   |--- Housing_A152 >  0.50
+|   |   |   |--- Age <= 30.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- Age >  30.50
+|   |   |   |   |--- class: 1
+|   |--- Purpose_A42 >  0.50
+|   |   |--- InstallmentRate <= 1.50
+|   |   |   |--- class: 1
+|   |   |--- InstallmentRate >  1.50
+|   |   |   |--- Savings_A63 <= 0.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- Savings_A63 >  0.50
+|   |   |   |   |--- class: 1
