@@ -44,8 +44,8 @@ class OwnClassifierModel:
         self.train_model()
         self.analyze_model_perfs()
         self.make_prediction()
-        # self.plot_partial_dependence()
-        # self.plot_ale()
+        self.plot_partial_dependence()
+        self.plot_ale()
         # self.plot_shap_analysis()
 
     def train_model(self) -> None:
@@ -162,8 +162,7 @@ class OwnClassifierModel:
                 len(self.categorical_features) + len(self.numerical_features)
             )
         ]  # pdp of categorical features
-        feature_names = self.X_test.columns
-        logger.debug(f"features names = {self.X_test.columns}")
+        feature_names = self.categorical_features + self.numerical_features
 
         display = PartialDependenceDisplay.from_estimator(
             self.model,
@@ -230,4 +229,3 @@ class OwnClassifierModel:
         #     # display.figure_.suptitle(f"SHAP plot for customer {customer_id}")
         #     plt.savefig(self.config["output"]["plot_shap_unique_customer"][i])
         # logger.debug(f"Individual shaps done")
-
