@@ -11,7 +11,7 @@ from scipy.sparse.construct import random
 from xgboost import XGBClassifier
 from sklearn.preprocessing import OrdinalEncoder, KBinsDiscretizer
 from sklearn.compose import make_column_transformer
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from joblib import dump
 
 from sklearn.inspection import PartialDependenceDisplay
@@ -58,6 +58,10 @@ class OwnClassifierModel:
             drop=True
         )
         y_train = self.X_train[self.prediction_column]
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2f1d9e0bab8597ada7a2279e78ff296ccc5f0a5d
         self.X_train.drop(
             columns=[self.prediction_column, self.existing_pred], inplace=True
         )
@@ -71,6 +75,7 @@ class OwnClassifierModel:
         self.model = XGBClassifier(
             random_state=self.random_state, use_label_encoder=False
         )
+
         self.model.fit(self.X_train_preprocessed, y_train)
         logger.debug(f"Model trained")
 
@@ -101,27 +106,40 @@ class OwnClassifierModel:
         self.X_test[self.config["output"]["y_pred_cat"]] = y_pred_cat
 
         self.X_test.to_csv(self.output_data_path, sep=";", index=False)
+        tn, fp, fn, tp = confusion_matrix(self.y_test, y_pred_cat).ravel()
+        logger.debug(f"tn: {tn}, fp: {fp}, fn: {fn}, tp: {tp}")
         logger.debug(f"Data exported")
 
     def _preprocess_data(self) -> None:
         logger.debug(f"Initialisation of pre_processing")
         self.X_train_preprocessed = self.X_train.copy()
+
         categories = [[v for v in x.values()][0] for x in self.cat_features_order]
-        logger.debug(categories)
         pipeline_preprocessing = make_column_transformer(
             ("passthrough", self.numerical_features),
             (OrdinalEncoder(categories=categories), self.categorical_features),
-            ("drop", self.forbidden_columns),
         )
+
+        self.X_train_preprocessed = self.X_train_preprocessed.drop(
+            columns=self.forbidden_columns, axis=1
+        )
+
+        self.X_test_preprocessed = self.X_test.drop(
+            columns=self.prediction_column, axis=1
+        )
+        self.X_test_preprocessed = self.X_test_preprocessed.drop(
+            columns=self.existing_pred, axis=1
+        )
+        self.X_test_preprocessed = self.X_test_preprocessed.drop(
+            columns=self.forbidden_columns, axis=1
+        )
+
         self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
             self.X_train_preprocessed
         )
-        print(pd.DataFrame(self.X_train_preprocessed).shape)
-        logger.debug(f"{pipeline_preprocessing.transformers_}")
-        self.X_test = self.X_test.drop(
-            columns=[self.prediction_column, self.existing_pred]
+        self.X_test_preprocessed = pipeline_preprocessing.transform(
+            self.X_test_preprocessed
         )
-        self.X_test_preprocessed = pipeline_preprocessing.transform(self.X_test)
 
     def plot_ale(self) -> None:
         fig, ax = plt.subplots(figsize=(20, 20), nrows=3, ncols=5)
@@ -131,7 +149,7 @@ class OwnClassifierModel:
             self.X_test_preprocessed,
             columns=self.numerical_features + self.categorical_features,
         )
-        logger.debug(f"\n{X_df.shape}")
+
         for i, feature in enumerate(self.numerical_features):
             result = ale(
                 X=X_df,
@@ -165,9 +183,8 @@ class OwnClassifierModel:
                 len(self.categorical_features) + len(self.numerical_features)
             )
         ]
-        logger.debug(f"num features = {self.numerical_features}")
-        logger.debug(f"num features = {self.categorical_features}")
-        feature_names = self.categorical_features + self.numerical_features
+
+        feature_names = self.numerical_features + self.categorical_features
 
         display = PartialDependenceDisplay.from_estimator(
             self.model,
@@ -175,7 +192,7 @@ class OwnClassifierModel:
             features_idx,
             feature_names=feature_names,
             kind="both",
-            subsample=20,
+            subsample=300,
             ice_lines_kw={"color": "tab:blue", "alpha": 0.2, "linewidth": 0.5},
             pd_line_kw={"color": "tab:orange", "linestyle": "--"},
         )
@@ -183,30 +200,6 @@ class OwnClassifierModel:
             "Partial dependence of credit worthiness  of borrowers with RandomForest"
         )
         plt.savefig(self.config["output"]["plot_pdp"])
-
-    def plot_ice(self) -> None:
-        plt.rcParams["figure.figsize"] = (20, 20)
-
-        features_idx = [
-            i
-            for i in range(
-                len(self.categorical_features) + len(self.numerical_features)
-            )
-        ]  # ice of categorical features
-        feature_names = self.X_test.columns
-        logger.debug(f"features names = {self.X_test.columns}")
-
-        display = PartialDependenceDisplay.from_estimator(
-            self.model,
-            self.X_test_preprocessed,
-            features_idx,
-            feature_names=feature_names,
-            kind="both",
-            ice_lines_kw={"color": "tab:blue", "alpha": 0.2, "linewidth": 0.5},
-            pd_line_kw={"color": "tab:orange", "linestyle": "--"},
-        )
-        display.figure_.suptitle("test")
-        plt.savefig(self.config["output"]["plot_ice"])
 
     def plot_shap_analysis(self) -> None:
         plt.rcParams["figure.figsize"] = (25, 25)
@@ -220,7 +213,9 @@ class OwnClassifierModel:
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
+            feature_names=self.X_train.drop(
+                columns=self.forbidden_columns, axis=1
+            ).columns,
             show=False,
         )
         display = plt.gcf()
@@ -232,7 +227,9 @@ class OwnClassifierModel:
         display = shap.summary_plot(
             shap_values,
             self.X_train_preprocessed,
-            feature_names=self.X_train.drop(columns=self.forbidden_columns).columns,
+            feature_names=self.X_train.drop(
+                columns=self.forbidden_columns, axis=1
+            ).columns,
             show=False,
             plot_type="bar",
         )
@@ -312,6 +309,9 @@ class OwnClassifierModel:
             nb_bin,
             "plot_conditional_statistical_parity_grp0",
         )
+
+        logger.debug(f"Conditional statistical parity finished")
+
 
     def _plot_statistical_parity(
         self, l_features, numerical_features, df_test, nb_bin, output_path
