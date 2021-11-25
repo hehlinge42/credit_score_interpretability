@@ -1,10 +1,10 @@
-from sklearn.inspection import PartialDependenceDisplay
+from sklearn.inspection import PartialDependenceDisplay, partial_dependence
+from scipy.stats import chisquare
 
 from logzero import logger
 
 import joblib
 import pandas as pd
-
 
 class PDP:
     def __init__(self, config):
@@ -22,6 +22,9 @@ class PDP:
         self.pdp = PartialDependenceDisplay.from_estimator(
             self.estimator, self.X, self.features_to_plot
         )
+        self.raw_values, _ = partial_dependence(self.estimator, self.X, [0])
 
     def plot(self):
         pass
+
+
