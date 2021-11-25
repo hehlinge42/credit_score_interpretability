@@ -38,6 +38,7 @@ class OwnClassifierModel:
         self.model_path = self.config["data"]["own_model_path"]
         self.output_data_path = self.config["data"]["prediction_data_path"]
         self.customers = self.config["data"]["chosen_random_customers"]
+        self.forbidden_columns = self.config["data"]["forbidden_columns"]
 
     def step_2_3_5_7(self) -> None:
         self.train_model()
@@ -105,7 +106,8 @@ class OwnClassifierModel:
         logger.debug(categories)
         pipeline_preprocessing = make_column_transformer(
             ("passthrough", self.numerical_features),
-            (OrdinalEncoder(categories=categories), self.categorical_features,),
+            (OrdinalEncoder(categories=categories), self.categorical_features),
+            ("drop", self.forbidden_columns),
         )
         self.X_train_preprocessed = pipeline_preprocessing.fit_transform(
             self.X_train_preprocessed
@@ -212,9 +214,14 @@ class OwnClassifierModel:
             show=False,
         )
         display = plt.gcf()
-        print(self.config["output"]["plot_shap_beeswarm"])
         plt.savefig(self.config["output"]["plot_shap_beeswarm"])
         logger.debug(f"SHAP beeswarm done")
+
+        shap_values = explainer(self.X_train_preprocessed)
+        display = shap.plots.bar(shap_values, self.X_train_preprocessed, show=False)
+        display = plt.gcf()
+        plt.savefig(self.config["output"]["plot_shap_feature_importance"])
+        logger.debug(f"SHAP feature importance done")
 
         # for i, customer_id in enumerate(self.customers):
         #     display = shap.plots.bar(shap_values[customer_id])
