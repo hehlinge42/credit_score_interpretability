@@ -12,8 +12,7 @@ from scipy.stats import chi2_contingency
 from xgboost import XGBClassifier
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.compose import make_column_transformer
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-from sklearn.inspection import partial_dependence
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from joblib import dump
 
 from sklearn.inspection import PartialDependenceDisplay
@@ -35,8 +34,10 @@ class OwnClassifierModel:
         self.data = pd.read_csv(self.config["data"]["inputs"], sep=";")
         self.categorical_features = self.config["data"]["categorical_features"]
         self.numerical_features = self.config["data"]["numerical_features"]
-        self.features_idx = [i for i in range(
-            len(self.categorical_features) + len(self.numerical_features)
+        self.features_idx = [
+            i
+            for i in range(
+                len(self.categorical_features) + len(self.numerical_features)
             )
         ]  # pdp of categorical features
         self.prediction_column = self.config["data"]["y_true"]
@@ -50,12 +51,12 @@ class OwnClassifierModel:
 
     def step_2_3_5_7(self) -> None:
         self.train_model()
-        # self.analyze_model_perfs()
-        # self.make_prediction()
-        # self.plot_partial_dependence()
-        # self.plot_ale()
-        # self.plot_shap_analysis()
-        # self._statistical_parity()
+        self.analyze_model_perfs()
+        self.make_prediction()
+        self.plot_partial_dependence()
+        self.plot_ale()
+        self.plot_shap_analysis()
+        self._statistical_parity()
         self.plot_fairness_partial_dependence()
 
     def train_model(self) -> None:
@@ -109,6 +110,8 @@ class OwnClassifierModel:
         self.X_test[self.config["output"]["y_pred_cat"]] = y_pred_cat
 
         self.X_test.to_csv(self.output_data_path, sep=";", index=False)
+        tn, fp, fn, tp = confusion_matrix(self.y_test, y_pred_cat).ravel()
+        logger.debug(f"tn: {tn}, fp: {fp}, fn: {fn}, tp: {tp}")
         logger.debug(f"Data exported")
 
     def _preprocess_data(self) -> None:
@@ -198,28 +201,31 @@ class OwnClassifierModel:
             distinct_values = np.unique(self.X_test_preprocessed[:, column_idx])
             logger.info(f"The distinct values are {distinct_values}")
             for c_j in distinct_values:
-                
+
                 X_modified = self.X_test_preprocessed.copy()
                 X_modified[:, column_idx] = c_j
 
                 y_pred = self.model.predict(X_modified)
-                df_contingency = pd.crosstab(self.X_test['Gender'], y_pred)
+                df_contingency = pd.crosstab(self.X_test["Gender"], y_pred)
 
                 _, p_val, _, _ = chi2_contingency(df_contingency.values)
                 pval_ls.append(p_val)
 
-            data = pd.DataFrame(data={feature_name:distinct_values, 'p-vals':np.array(pval_ls)})
-            fig = sns.barplot(data=data, x=feature_name, y='p-values', color='lightblue')
-            plt.axhline(0.1,0,1, c='r')
+            data = pd.DataFrame(
+                data={feature_name: distinct_values, "p-vals": np.array(pval_ls)}
+            )
+            fig = sns.barplot(
+                data=data, x=feature_name, y="p-values", color="lightblue"
+            )
+            plt.axhline(0.1, 0, 1, c="r")
             plt.savefig(
                 self.config["output"]["plot_fairness_dependence_plot"]
                 + "_"
                 + str(feature_name)
             )
-        
+
         for column in self.categorical_features:
             plot_feature(column)
-            
 
     def plot_ice(self) -> None:
         plt.rcParams["figure.figsize"] = (20, 20)
@@ -352,4 +358,3 @@ class OwnClassifierModel:
 #     Step 9: Assess the fairness of your own model. Use a Pearson statistic for the following three fairness
 # definitions: Statistical Parity, Conditional Statistical Parity (groups are given in the dataset), and Equal
 # Odds. Discuss your results.
-
