@@ -93,6 +93,5 @@ output:
     - "data/outputs/shap_customer_3.png"
 
 launcher:
-  class: OwnClassifierModel #OwnClassifierModel
-  func: step_2_3_5_7 #step_2_3_5_7
-
+  class: SurrogateModel #OwnClassifierModel
+  func: train #step_2_3_5_7 
