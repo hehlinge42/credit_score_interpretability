@@ -1,3 +1,4 @@
+import matplotlib
 import pandas as pd
 import numpy as np
 from scipy.stats import chisquare
@@ -54,6 +55,7 @@ class OwnClassifierModel:
         self.analyze_model_perfs()
         self.make_prediction()
         self.plot_partial_dependence()
+        self.plot_fairness_partial_dependence()
         self.plot_ale()
         self.plot_shap_analysis()
         self.fairness_assessment()
@@ -205,11 +207,14 @@ class OwnClassifierModel:
         plt.savefig(self.config["output"]["plot_pdp"])
 
     def plot_fairness_partial_dependence(self) -> None:
+        logger.info("Starting FPDP computations.")
+        plt.clf()
+        # fig, ax = plt.subplots(figsize=(20, 20), nrows=3, ncols=5)
         def plot_feature(feature_name):
+            logger.info(f"Evaluating FPDP of feature {feature_name}.")
             pval_ls = []
             column_idx = self.X_test.columns.get_loc(feature_name)
             distinct_values = np.unique(self.X_test_preprocessed[:, column_idx])
-            logger.info(f"The distinct values are {distinct_values}")
             for c_j in distinct_values:
 
                 X_modified = self.X_test_preprocessed.copy()
@@ -222,16 +227,20 @@ class OwnClassifierModel:
                 pval_ls.append(p_val)
 
             data = pd.DataFrame(
-                data={feature_name: distinct_values, "p-vals": np.array(pval_ls)}
+                data={feature_name: distinct_values, "p-values": np.array(pval_ls)}
             )
+            plt.figure(figsize=(4, 3))
             fig = sns.barplot(
                 data=data, x=feature_name, y="p-values", color="lightblue"
             )
             plt.axhline(0.1, 0, 1, c="r")
+            # plt.xticks(data[feature_name], self.X_test[feature_name], rotation='vertical')
+
             plt.savefig(
                 self.config["output"]["plot_fairness_dependence_plot"]
                 + "_"
-                + str(feature_name)
+                + str(feature_name),
+                bbox_inches="tight",
             )
 
         for column in self.categorical_features:
